@@ -1,4 +1,4 @@
-JUDUL_WINDOW = "Quizel (Quiz Pixel)"
+JUDUL_WINDOW = "QuizEdu (Quiz Edukasi)"
 LEBAR_WINDOW = 900
 TINGGI_WINDOW = 600
 
