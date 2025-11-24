@@ -1,0 +1,5 @@
+JUDUL_WINDOW = "Quizel (Quiz Pixel)"
+LEBAR_WINDOW = 900
+TINGGI_WINDOW = 600
+
+COLOR_BG = (0.1, 0.1, 0.15)
