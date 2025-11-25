@@ -11,7 +11,7 @@ def gambar(ctx, width, height):
     ctx.curve_to(-110, -130, -220, 40, 0, 170)
     ctx.curve_to(220, 40, 110, -130, 0, -50)
     ctx.close_path()
-
+    
     gradient = cairo.RadialGradient(-30, -50, 20, 0, 20, 200)
     gradient.add_color_stop_rgb(0, 1, 0.2, 0.2)     
     gradient.add_color_stop_rgb(0.4, 0.9, 0.0, 0.0) 
