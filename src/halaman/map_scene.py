@@ -1,10 +1,11 @@
+# src/halaman/map_scene.py
 import gi
 gi.require_version('Gtk', '3.0')
 import math
 import cairo
 import json
 from gi.repository import Gtk, Gdk, GLib
-from ..components import komponen_map # Sekarang cuma satu import!
+from ..components import komponen_map
 
 class MapScene(Gtk.DrawingArea):
     def __init__(self, window_width, window_height, change_scene_callback):
@@ -107,7 +108,10 @@ class MapScene(Gtk.DrawingArea):
             for level in levels:
                 lx, ly = level['pos']
                 hitbox_radius = 35
-                dist_sq = (vx - lx)**2 + (vy - (ly + math.sin(self.animation_time * 0.05 + level['id']) * 4))**2
+                # Animasi naik turun mempengaruhi hitbox sedikit
+                anim_offset = math.sin(self.animation_time * 0.05 + level['id']) * 4
+                dist_sq = (vx - lx)**2 + (vy - (ly + anim_offset))**2
+                
                 if dist_sq < hitbox_radius**2: 
                     current_hover = f"level_{level['id']}"
                     break
@@ -127,9 +131,11 @@ class MapScene(Gtk.DrawingArea):
                 self.change_scene("pilihan_level_scene")
             elif str(self.pressed_button_name).startswith("level_"):
                 lvl_id = int(self.pressed_button_name.split("_")[1])
+                
                 if lvl_id <= self.unlocked_level:
                     print(f"Start Game: Level {lvl_id} [{self.difficulty}]")
-                    # self.change_scene("game_scene", level=lvl_id, difficulty=self.difficulty) 
+                    # Pindah ke Game Scene
+                    self.change_scene("game_scene", level=lvl_id, difficulty=self.difficulty) 
                 else:
                     print("Level Terkunci!")
 
@@ -143,29 +149,52 @@ class MapScene(Gtk.DrawingArea):
         scale_y = self.height / v_height
         ctx.scale(scale_x, scale_y)
 
-        # 1. Background (Kirim parameter difficulty)
+        # 1. Background
         komponen_map.draw_sky_background(ctx, v_width, v_height, self.animation_time, self.difficulty)
 
-        # 2. Pemandangan (Kirim parameter difficulty)
+        # 2. Pemandangan
         komponen_map.draw_foreground_scenery(ctx, v_width, v_height, self.animation_time, self.difficulty)
 
         levels = self.level_data.get('levels', [])
         
-        # 3. Jalur & Rumah (Kirim parameter difficulty)
+        # 3. Jalur & Rumah
         komponen_map.draw_3d_winding_path(ctx, levels, self.animation_time, self.difficulty)
 
-        # 4. Node Level (Kirim parameter difficulty untuk warna)
+        # Hitung Offset Angka Tampilan (Visual Saja)
+        # Easy: 1-10, Medium: 11-20, Hard: 21-30
+        display_offset = 0
+        if self.difficulty == 'medium':
+            display_offset = 10
+        elif self.difficulty == 'hard':
+            display_offset = 20
+
+        # 4. Node Level
         for level in levels:
-            lvl_id = level['id']
+            lvl_id = level['id'] # Ini tetap 1-10 untuk logika internal
             pos = level['pos']
+            
+            # Tentukan status kunci
             state = 'locked'
-            if lvl_id < self.unlocked_level: state = 'unlocked'
-            elif lvl_id == self.unlocked_level: state = 'current'
+            if lvl_id < self.unlocked_level: 
+                state = 'unlocked' # Level yang sudah lewat (bintang/hijau)
+            elif lvl_id == self.unlocked_level: 
+                state = 'current'  # Level saat ini (kuning/berdenyut)
             
             is_hovered = (self.hovered_button_name == f"level_{lvl_id}")
-            komponen_map.draw_crystal_level_node(ctx, pos[0], pos[1], lvl_id, state, is_hovered, self.animation_time, self.difficulty)
+            
+            # PENTING: Kita kirim (lvl_id + display_offset) ke fungsi gambar
+            # supaya yang muncul di layar adalah angka 11, 12, dst.
+            komponen_map.draw_crystal_level_node(
+                ctx, 
+                pos[0], pos[1], 
+                lvl_id + display_offset, # <--- PERUBAHAN DISINI
+                state, 
+                is_hovered, 
+                self.animation_time, 
+                self.difficulty
+            )
 
-        # 5. UI
+        # 5. UI & Judul
         self._draw_title(ctx, v_width)
         for btn in self.buttons:
             vx, vy, vw, vh = btn['v_rect']
@@ -190,11 +219,11 @@ class MapScene(Gtk.DrawingArea):
         ctx.set_font_size(60)
         
         if self.difficulty == 'hard':
-            text = "PETA MISTERIUS"; color = (0.8, 0.2, 0.2) # Merah darah
+            text = "PETA MISTERIUS"; color = (0.8, 0.2, 0.2) 
         elif self.difficulty == 'medium':
-            text = "PETA PETUALANGAN"; color = (1.0, 0.9, 0.0) # Kuning emas
+            text = "PETA PETUALANGAN"; color = (1.0, 0.9, 0.0) 
         else:
-            text = "PETA PETUALANGAN"; color = (1.0, 1.0, 1.0) # Putih
+            text = "PETA PETUALANGAN"; color = (1.0, 1.0, 1.0) 
 
         ext = ctx.text_extents(text)
         x = (w - ext.width) / 2
