@@ -38,7 +38,7 @@ def draw_starry_background(ctx, w, h, time=0):
         ctx.fill()
 
 def draw_credit_title(ctx, w):
-    """Menggambar judul 'Credits' dengan gaya yang sama seperti judul 'Pengaturan'."""
+    """Menggambar judul 'Credits'."""
     ctx.select_font_face("Comic Sans MS", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
     ctx.set_font_size(70)
     text = "Credits"
@@ -49,7 +49,7 @@ def draw_credit_title(ctx, w):
 
     # Gambar bayangan (shadow)
     ctx.move_to(x_pos + 3, y_pos + 3)
-    ctx.set_source_rgb(0.2, 0.1, 0.3) # Warna shadow ungu gelap agar sesuai tema
+    ctx.set_source_rgb(0.2, 0.1, 0.3) 
     ctx.show_text(text)
 
     # Gambar teks utama
@@ -58,9 +58,9 @@ def draw_credit_title(ctx, w):
     ctx.show_text(text)
 
 def draw_scrolling_credits(ctx, w, h, scroll_y, credits):
-    """Menggambar teks kredit yang bisa di-scroll."""
+    """Menggambar teks kredit yang bisa di-scroll dengan dukungan MULTI-LINE."""
     ctx.save()
-    ctx.rectangle(0, 180, w, h - 280)
+    ctx.rectangle(0, 180, w, h - 280) # Area clipping
     ctx.clip()
 
     ctx.select_font_face("Comic Sans MS", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -70,22 +70,28 @@ def draw_scrolling_credits(ctx, w, h, scroll_y, credits):
         role = item['role']
         name = item['name']
 
-        # Gambar Role (e.g., "Game Director")
-        ctx.set_font_size(28)
-        ctx.set_source_rgb(0.5, 0.8, 1.0) # Biru neon
-        role_ext = ctx.text_extents(role)
-        ctx.move_to(w / 2 - role_ext.width / 2, current_y)
-        ctx.show_text(role)
-        current_y += 40
+        # 1. Gambar Role (Judul Bagian)
+        if role:
+            ctx.set_font_size(28)
+            ctx.set_source_rgb(0.5, 0.8, 1.0) # Biru neon
+            role_ext = ctx.text_extents(role)
+            ctx.move_to(w / 2 - role_ext.width / 2, current_y)
+            ctx.show_text(role)
+            current_y += 40
 
-        # Gambar Name
+        # 2. Gambar Name (Isi) - Support \n untuk baris baru
         ctx.set_font_size(36)
         ctx.set_source_rgb(1, 1, 1)
-        name_ext = ctx.text_extents(name)
-        ctx.move_to(w / 2 - name_ext.width / 2, current_y)
-        ctx.show_text(name)
-        current_y += 70
+        
+        # Pecah nama berdasarkan baris baru (\n)
+        lines = name.split('\n')
+        for line in lines:
+            line = line.strip()
+            name_ext = ctx.text_extents(line)
+            ctx.move_to(w / 2 - name_ext.width / 2, current_y)
+            ctx.show_text(line)
+            current_y += 50 # Jarak antar nama dalam satu grup
+            
+        current_y += 40 # Jarak antar grup kredit
 
     ctx.restore()
-
-

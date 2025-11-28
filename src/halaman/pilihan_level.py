@@ -120,6 +120,9 @@ class PilihanLevelScene(Gtk.DrawingArea):
         v_gap = (v_width - 3 * v_card_w) / 4
         v_y = 180
 
+        # Baca data unlock
+        unlocked = self.unlocked_levels # List ['easy', 'medium', ...] dari savegame
+        
         v_defs = {
             "level_easy": {'v_rect': (v_gap, v_y, v_card_w, v_card_h)},
             "level_medium": {'v_rect': (v_gap * 2 + v_card_w, v_y, v_card_w, v_card_h)},
@@ -129,19 +132,19 @@ class PilihanLevelScene(Gtk.DrawingArea):
 
         for name, data in v_defs.items():
             vx, vy, vw, vh = data['v_rect']
-            
-            # Buat rect asli untuk deteksi mouse
             real_rect = (vx * scale_x, vy * scale_y, vw * scale_x, vh * scale_y)
             
-            # Tentukan status lock
             is_locked = False
             if "level" in name:
-                is_locked = name.split('_')[1] not in self.unlocked_levels
+                diff_type = name.split('_')[1] # easy, medium, hard
+                # Jika difficulty ini TIDAK ada di list unlocked, maka kunci
+                if diff_type not in unlocked:
+                    is_locked = True
 
             self.buttons.append({
                 'name': name,
                 'rect': real_rect,
-                'v_rect': data['v_rect'], # Simpan virtual rect untuk drawing
+                'v_rect': data['v_rect'],
                 'locked': is_locked
             })
 
