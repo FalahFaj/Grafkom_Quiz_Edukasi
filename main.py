@@ -8,7 +8,6 @@ from src.window import GameWindow
 
 def main():
     app = GameWindow()
-
     app.show_all()
     Gtk.main()
 

@@ -1,0 +1,11 @@
+{
+    "unlocked_levels": [
+        "easy"
+    ],
+    "lives": 3,
+    "current_level": {
+        "easy": 1,
+        "medium": 1,
+        "hard": 1
+    }
+}

@@ -1,0 +1,66 @@
+
+{
+    "levels": [
+        {
+            "id": 1,
+            "pos": [150, 500],
+            "status": "unlocked",
+            "next_level": 2
+        },
+        {
+            "id": 2,
+            "pos": [250, 400],
+            "status": "locked",
+            "next_level": 3
+        },
+        {
+            "id": 3,
+            "pos": [350, 500],
+            "status": "locked",
+            "next_level": 4
+        },
+        {
+            "id": 4,
+            "pos": [450, 400],
+            "status": "locked",
+            "next_level": 5
+        },
+        {
+            "id": 5,
+            "pos": [550, 500],
+            "status": "locked",
+            "next_level": 6
+        },
+        {
+            "id": 6,
+            "pos": [650, 400],
+            "status": "locked",
+            "next_level": 7
+        },
+        {
+            "id": 7,
+            "pos": [750, 500],
+            "status": "locked",
+            "next_level": 8
+        },
+        {
+            "id": 8,
+            "pos": [850, 400],
+            "status": "locked",
+            "next_level": 9
+        },
+        {
+            "id": 9,
+            "pos": [950, 500],
+            "status": "locked",
+            "next_level": 10
+        },
+        {
+            "id": 10,
+            "pos": [1050, 400],
+            "status": "locked",
+            "next_level": null
+        }
+    ],
+    "player_current_level": 1
+}

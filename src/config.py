@@ -1,5 +1,3 @@
-JUDUL_WINDOW = "QuizEdu (Quiz Edukasi)"
-LEBAR_WINDOW = 900
-TINGGI_WINDOW = 600
+JUDUL_WINDOW = "EduIz (Education Quiz)"
 
 COLOR_BG = (0.1, 0.1, 0.15)
