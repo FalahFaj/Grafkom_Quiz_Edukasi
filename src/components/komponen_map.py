@@ -1,7 +1,61 @@
 import cairo
 import math
+import random
 
-# Fungsi helper dari components_menu.py, agar monster bisa digambar
+# --- KONFIGURASI TEMA (PALET WARNA) ---
+THEMES = {
+    'easy': { # Siang Cerah
+        'sky_top': (0.0, 0.5, 0.9, 1.0),    # Biru Langit
+        'sky_bot': (0.6, 0.9, 1.0, 1.0),    # Putih Biru
+        'sun_color': (1.0, 0.95, 0.6),      # Kuning
+        'sun_pos': (0.1, 0.15),
+        'cloud_tint': (1, 1, 1, 0.95),
+        'hill_back': ((0.3, 0.55, 0.75), (0.6, 0.8, 0.9)),
+        'hill_mid': ((0.2, 0.7, 0.3), (0.1, 0.5, 0.2)),
+        'hill_front': ((0.4, 0.8, 0.2), (0.2, 0.6, 0.1)),
+        'tree_trunk': (0.45, 0.3, 0.15),
+        'tree_leaf_l': (0.1, 0.55, 0.2),
+        'tree_leaf_d': (0.08, 0.45, 0.18),
+        'path_edge': (0.55, 0.5, 0.45),
+        'path_center': (0.92, 0.88, 0.7),
+        'house': 'castle'
+    },
+    'medium': { # Sore Sunset (Vibrant)
+        'sky_top': (0.25, 0.1, 0.4, 1.0),   # Ungu
+        'sky_bot': (1.0, 0.6, 0.2, 1.0),    # Oranye Terang
+        'sun_color': (1.0, 0.3, 0.1),       # Merah Oranye
+        'sun_pos': (0.15, 0.35),            # Matahari lebih rendah
+        'cloud_tint': (1.0, 0.9, 0.8, 0.8), # Awan kekuningan
+        'hill_back': ((0.45, 0.3, 0.5), (0.3, 0.2, 0.4)), # Ungu kecoklatan
+        'hill_mid': ((0.6, 0.4, 0.2), (0.4, 0.25, 0.1)),  # Oranye kecoklatan
+        'hill_front': ((0.5, 0.6, 0.2), (0.3, 0.4, 0.1)), # Hijau zaitun
+        'tree_trunk': (0.35, 0.2, 0.1),
+        'tree_leaf_l': (0.3, 0.4, 0.1),     # Hijau kekuningan
+        'tree_leaf_d': (0.2, 0.3, 0.05),
+        'path_edge': (0.5, 0.4, 0.35),
+        'path_center': (0.9, 0.8, 0.65),    # Pasir kemerahan
+        'house': 'cottage'
+    },
+    'hard': { # Malam Gelap
+        'sky_top': (0.02, 0.02, 0.1, 1.0),  # Hitam
+        'sky_bot': (0.1, 0.1, 0.3, 1.0),    # Biru Malam
+        'sun_color': (0.9, 0.9, 1.0),       # Bulan
+        'sun_pos': (0.85, 0.15),
+        'cloud_tint': (0.3, 0.3, 0.4, 0.4), # Awan gelap
+        'hill_back': ((0.05, 0.05, 0.15), (0.1, 0.1, 0.2)),
+        'hill_mid': ((0.1, 0.1, 0.2), (0.05, 0.05, 0.15)),
+        'hill_front': ((0.15, 0.15, 0.25), (0.08, 0.08, 0.15)),
+        'tree_trunk': (0.15, 0.1, 0.15),
+        'tree_leaf_l': (0.1, 0.2, 0.25),    # Teal gelap
+        'tree_leaf_d': (0.05, 0.1, 0.15),
+        'path_edge': (0.25, 0.25, 0.3),
+        'path_center': (0.4, 0.4, 0.45),    # Jalan batu abu-abu
+        'house': 'haunted'
+    }
+}
+
+# --- Helper Shapes ---
+
 def rounded_rect(ctx, x, y, w, h, r):
     ctx.new_path()
     ctx.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
@@ -10,665 +64,543 @@ def rounded_rect(ctx, x, y, w, h, r):
     ctx.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
     ctx.close_path()
 
-def draw_cartoon_cloud(ctx, x, y, scale, time=0):
-    """Menggambar awan kartun dengan animasi halus."""
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.scale(scale, scale)
-    
-    # Animasi awan bergerak perlahan
-    cloud_move = math.sin(time * 0.01) * 5
-    
-    # Warna dasar awan
-    ctx.set_source_rgb(1, 1, 1)
-    
-    # Menggambar beberapa lingkaran yang tumpang tindih
-    ctx.arc(0 + cloud_move, 0, 30, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.arc(-25 + cloud_move, 15, 25, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.arc(25 + cloud_move, 10, 35, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.arc(0 + cloud_move, 20, 20, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Bayangan lembut di bawah
-    ctx.set_source_rgba(0.8, 0.85, 0.9, 0.7)
-    ctx.arc(0 + cloud_move, 5, 30, 0, 2*math.pi)
-    ctx.arc(-25 + cloud_move, 20, 25, 0, 2*math.pi)
-    ctx.arc(25 + cloud_move, 15, 35, 0, 2*math.pi)
-    ctx.fill()
+# --- Assets ---
 
+def draw_stars(ctx, w, h, time):
+    """Bintang kelap-kelip (Hard)."""
+    random.seed(42)
+    for i in range(60):
+        sx = random.randint(0, int(w))
+        sy = random.randint(0, int(h * 0.7))
+        alpha = (math.sin(time * 0.05 + i) + 1) / 2 * 0.8 + 0.2
+        ctx.set_source_rgba(1, 1, 1, alpha)
+        ctx.arc(sx, sy, random.uniform(1, 2.5), 0, 2*math.pi)
+        ctx.fill()
+
+def draw_cloud_puff(ctx, cx, cy, radius, tint):
+    ctx.save()
+    grad = cairo.RadialGradient(cx, cy, radius*0.2, cx, cy, radius)
+    r, g, b, a = tint
+    grad.add_color_stop_rgba(0, r, g, b, a)
+    grad.add_color_stop_rgba(1, r, g, b, 0.0)
+    ctx.set_source(grad); ctx.arc(cx, cy, radius, 0, 2*math.pi); ctx.fill()
     ctx.restore()
 
-def draw_map_monster(ctx, x, y, time=0):
-    """Menggambar monster ungu dari menu, disesuaikan untuk peta."""
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.scale(0.8, 0.8)
-
-    # Goyangan lembut dengan animasi lebih hidup
-    rotation_angle = math.sin(time * 0.03) * 0.15
-    bounce_y = math.sin(time * 0.05) * 3
-    ctx.rotate(rotation_angle)
-    ctx.translate(0, bounce_y)
+def draw_cloud(ctx, x, y, scale, time, speed_offset, difficulty):
+    t_conf = THEMES.get(difficulty, THEMES['easy'])
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale)
+    move_x = math.sin((time * 0.01) + speed_offset) * 30
+    ctx.translate(move_x, 0)
+    tint = t_conf['cloud_tint']
     
-    # Badan dengan efek 3D
-    rounded_rect(ctx, -35, -35, 70, 65, 15)
-    ctx.set_source_rgb(1,1,1); ctx.set_line_width(8); ctx.stroke()
-    
-    # Gradien badan dengan highlight
-    grad_p = cairo.RadialGradient(-10, -20, 0, -10, -20, 50)
-    grad_p.add_color_stop_rgb(0, 0.9, 0.5, 1.0)  # Highlight
-    grad_p.add_color_stop_rgb(0.7, 0.8, 0.4, 0.9)  # Main color
-    grad_p.add_color_stop_rgb(1, 0.5, 0.1, 0.7)   # Shadow
-    
-    rounded_rect(ctx, -35, -35, 70, 65, 15)
-    ctx.set_source(grad_p); ctx.fill()
-    
-    # Mata dengan animasi berkedip
-    eye_offset_x = math.sin(time * 0.05 + math.pi) * 3
-    blink = abs(math.sin(time * 0.1)) > 0.7  # Kedip acak
-    
-    if not blink:
-        ctx.translate(-15 + eye_offset_x, -10)
-        # Mata putih dengan gradien
-        grad_eye = cairo.RadialGradient(-3, -3, 0, 0, 0, 14)
-        grad_eye.add_color_stop_rgb(0, 1, 1, 1)
-        grad_eye.add_color_stop_rgb(1, 0.9, 0.9, 1)
-        ctx.set_source(grad_eye); ctx.arc(0,0, 14, 0, 2*math.pi); ctx.fill()
-        
-        # Pupil dengan gradien
-        grad_pupil = cairo.RadialGradient(1, 1, 0, 2, 2, 4)
-        grad_pupil.add_color_stop_rgb(0, 0, 0, 0)
-        grad_pupil.add_color_stop_rgb(1, 0.2, 0.2, 0.3)
-        ctx.set_source(grad_pupil); ctx.arc(2,2, 4, 0, 2*math.pi); ctx.fill()
-        
-        # Highlight mata
-        ctx.set_source_rgba(1, 1, 1, 0.8); ctx.arc(0, -2, 2, 0, 2*math.pi); ctx.fill()
-    
-    ctx.restore()
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.scale(0.8, 0.8)
-    ctx.rotate(rotation_angle)
-    ctx.translate(0, bounce_y)
-    
-    if not blink:
-        ctx.translate(30, -10)
-        # Mata kanan
-        grad_eye = cairo.RadialGradient(-3, -3, 0, 0, 0, 14)
-        grad_eye.add_color_stop_rgb(0, 1, 1, 1)
-        grad_eye.add_color_stop_rgb(1, 0.9, 0.9, 1)
-        ctx.set_source(grad_eye); ctx.arc(0,0, 14, 0, 2*math.pi); ctx.fill()
-        
-        grad_pupil = cairo.RadialGradient(-1, 1, 0, -2, 2, 4)
-        grad_pupil.add_color_stop_rgb(0, 0, 0, 0)
-        grad_pupil.add_color_stop_rgb(1, 0.2, 0.2, 0.3)
-        ctx.set_source(grad_pupil); ctx.arc(-2,2, 4, 0, 2*math.pi); ctx.fill()
-        
-        ctx.set_source_rgba(1, 1, 1, 0.8); ctx.arc(-1, -2, 2, 0, 2*math.pi); ctx.fill()
-    
+    # Gambar awan tumpuk
+    draw_cloud_puff(ctx, 0, 0, 40, tint)
+    draw_cloud_puff(ctx, 35, -10, 35, tint)
+    draw_cloud_puff(ctx, 65, 5, 30, tint)
+    draw_cloud_puff(ctx, -30, 10, 30, tint)
+    draw_cloud_puff(ctx, 25, 15, 25, tint)
     ctx.restore()
 
-def draw_floating_islands(ctx, w, h, time=0):
-    """Menggambar pulau-pulau mengambang di langit dengan efek 3D."""
+def draw_sky_background(ctx, w, h, time, difficulty="easy"):
+    t_conf = THEMES.get(difficulty, THEMES['easy'])
+    
+    # 1. Langit
+    grad = cairo.LinearGradient(0, 0, 0, h)
+    grad.add_color_stop_rgba(0, *t_conf['sky_top'])
+    if difficulty == 'medium': # Tambah warna tengah untuk sunset
+        grad.add_color_stop_rgba(0.5, 0.8, 0.4, 0.3, 1.0) # Pinkish
+    grad.add_color_stop_rgba(1, *t_conf['sky_bot'])
+    ctx.set_source(grad); ctx.paint()
+
+    # 2. Bintang (Jika Hard)
+    if difficulty == 'hard': draw_stars(ctx, w, h, time)
+
+    # 3. Matahari / Bulan
+    ctx.save()
+    pos_x, pos_y = t_conf['sun_pos']
+    ctx.translate(w * pos_x, h * pos_y)
+    
+    # Glow
+    glow = cairo.RadialGradient(0, 0, 10, 0, 0, 80)
+    sc = t_conf['sun_color']
+    glow.add_color_stop_rgba(0, sc[0], sc[1], sc[2], 0.6)
+    glow.add_color_stop_rgba(1, sc[0], sc[1], sc[2], 0.0)
+    ctx.set_source(glow); ctx.arc(0, 0, 80, 0, 2*math.pi); ctx.fill()
+    
+    # Body
+    ctx.set_source_rgb(*sc); ctx.arc(0, 0, 40 if difficulty=='hard' else 45, 0, 2*math.pi); ctx.fill()
+    
+    # Kawah Bulan
+    if difficulty == 'hard':
+        ctx.set_source_rgba(0.8, 0.8, 0.9, 0.4)
+        ctx.arc(-10, -5, 8, 0, 2*math.pi); ctx.fill()
+        ctx.arc(15, 10, 6, 0, 2*math.pi); ctx.fill()
+    ctx.restore()
+
+    # 4. Awan
+    if difficulty == 'hard':
+        draw_cloud(ctx, w*0.5, h*0.2, 1.0, time, 0, difficulty)
+    else:
+        draw_cloud(ctx, w*0.25, h*0.2, 1.2, time, 0, difficulty)
+        draw_cloud(ctx, w*0.75, h*0.15, 0.9, time, 2, difficulty)
+
+def draw_hill_layer(ctx, w, h, y_start, wave_height, colors, offset_x=0):
+    ctx.save()
+    grad = cairo.LinearGradient(0, y_start, 0, h)
+    grad.add_color_stop_rgb(0, *colors[0]); grad.add_color_stop_rgb(1, *colors[1])
+    ctx.set_source(grad)
+    ctx.move_to(0, h); ctx.line_to(0, y_start)
+    steps = 30; step_w = w / steps
+    for i in range(steps + 2):
+        x = i * step_w
+        y = y_start + math.sin((x+offset_x)*0.008)*wave_height + math.sin((x+offset_x)*0.003)*(wave_height*1.5)
+        ctx.line_to(x, y)
+    ctx.line_to(w, h); ctx.close_path(); ctx.fill(); ctx.restore()
+
+def draw_tree(ctx, x, y, scale, difficulty):
+    t_conf = THEMES.get(difficulty, THEMES['easy'])
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale)
+    
+    # Batang
+    ctx.set_source_rgb(*t_conf['tree_trunk']); ctx.rectangle(-6, -25, 12, 25); ctx.fill()
+    
+    # Daun Segitiga
+    leafs = [(0, -50, 35, 35), (0, -70, 30, 30), (0, -90, 22, 25)]
+    for px, py, pw, ph in leafs:
+        yb = py + ph
+        # Kiri Terang
+        ctx.set_source_rgb(*t_conf['tree_leaf_l']); ctx.move_to(px, py); ctx.line_to(px-pw, yb); ctx.line_to(px, yb); ctx.fill()
+        # Kanan Gelap
+        ctx.set_source_rgb(*t_conf['tree_leaf_d']); ctx.move_to(px, py); ctx.line_to(px+pw, yb); ctx.line_to(px, yb); ctx.fill()
+    ctx.restore()
+
+def draw_foreground_scenery(ctx, w, h, time, difficulty="easy"):
+    t_conf = THEMES.get(difficulty, THEMES['easy'])
+    draw_hill_layer(ctx, w, h, h*0.42, 35, t_conf['hill_back'], offset_x=100)
+    draw_hill_layer(ctx, w, h, h*0.58, 45, t_conf['hill_mid'], offset_x=350)
+    
+    random.seed(42)
+    for i in range(18):
+        tx = random.randint(50, int(w)-50)
+        hill_y = h*0.58 + math.sin((tx+350)*0.008)*45 + math.sin((tx+350)*0.003)*67.5
+        ty = hill_y + random.randint(-20, 50)
+        s = random.uniform(0.7, 1.1)
+        draw_tree(ctx, tx, ty, s, difficulty)
+        
+    draw_hill_layer(ctx, w, h, h*0.78, 55, t_conf['hill_front'], offset_x=0)
+
+
+# --- RUMAH & BANGUNAN ---
+
+def draw_castle(ctx, x, y): 
+    """Istana (Easy) - Tampilan Kartun."""
+    ctx.save(); ctx.translate(x, y-15); ctx.scale(1.1, 1.1)
+    # Pondasi
+    ctx.set_source_rgb(0.5, 0.45, 0.4); rounded_rect(ctx, -60, -5, 120, 25, 8); ctx.fill()
+    # Dinding
+    ctx.set_source_rgb(0.85, 0.82, 0.9); ctx.rectangle(-40, -55, 80, 55); ctx.fill()
+    ctx.rectangle(-70, -70, 35, 70); ctx.fill(); ctx.rectangle(35, -70, 35, 70); ctx.fill()
+    # Atap Kerucut
+    ctx.set_source_rgb(0.45, 0.2, 0.6)
+    for cx, cy, w, h in [(-52.5,-70,45,50), (52.5,-70,45,50), (0,-55,60,40)]:
+        ctx.move_to(cx, cy-h); ctx.line_to(cx-w/2, cy); ctx.line_to(cx+w/2, cy); ctx.fill()
+    # Pintu & Bendera
+    ctx.set_source_rgb(0.4, 0.25, 0.1); ctx.arc(0, -5, 18, math.pi, 0); ctx.fill()
+    ctx.set_source_rgb(0.9, 0.3, 0.3); ctx.move_to(-52.5, -120); ctx.line_to(-30, -110); ctx.line_to(-52.5, -100); ctx.fill()
+    ctx.restore()
+
+def draw_cottage(ctx, x, y): 
+    """Rumah Villa Kartun (Medium) - POSISI PINTU DIPERBAIKI."""
     ctx.save()
     
-    # Pulau besar kiri dengan efek kedalaman
-    island_y_offset = math.sin(time * 0.02) * 3
+    # PERBAIKAN UTAMA DI SINI:
+    # x - 35: Geser rumah ke kiri, karena pintu digambar di koordinat x=35. 
+    #         Ini membuat pintu pas di tengah jalan (x=0 relatif terhadap jalan).
+    # y - 15: Geser rumah sedikit ke atas agar jalan terlihat 'masuk' ke ambang pintu.
+    ctx.translate(x - 38, y - 25) 
     
-    # Bayangan pulau (lebih gelap dan besar untuk efek 3D)
-    ctx.set_source_rgba(0.2, 0.3, 0.1, 0.6)
-    ctx.arc(w * 0.2 + 8, h * 0.25 + island_y_offset + 15, 85, 0, 2 * math.pi)
-    ctx.fill()
+    ctx.scale(1.3, 1.3)
+
+    # Warna Custom Villa
+    c_wall_light = (0.95, 0.9, 0.8)
+    c_wall_dark = (0.85, 0.8, 0.7)
+    c_roof_light = (0.6, 0.3, 0.2)
+    c_roof_dark = (0.4, 0.2, 0.1)
     
-    # Badan pulau dengan gradien
-    grad_island = cairo.RadialGradient(w * 0.2 - 20, h * 0.25 - 20, 0, w * 0.2, h * 0.25, 80)
-    grad_island.add_color_stop_rgb(0, 0.5, 0.8, 0.4)  # Highlight
-    grad_island.add_color_stop_rgb(0.7, 0.4, 0.7, 0.3)  # Main
-    grad_island.add_color_stop_rgb(1, 0.3, 0.5, 0.2)   # Shadow
-    
-    ctx.set_source(grad_island)
-    ctx.arc(w * 0.2, h * 0.25 + island_y_offset, 80, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Detail pepohonan di pulau
-    ctx.set_source_rgb(0.3, 0.4, 0.2)
-    for i in range(3):
-        tree_x = w * 0.2 - 20 + i * 20
-        tree_y = h * 0.25 + island_y_offset - 30
-        ctx.move_to(tree_x, tree_y)
-        ctx.line_to(tree_x - 8, tree_y - 25)
-        ctx.line_to(tree_x + 8, tree_y - 25)
+    # Bangunan Utama (Kanan)
+    # Gradasi Dinding
+    grad_wall = cairo.LinearGradient(0, -60, 0, 0)
+    grad_wall.add_color_stop_rgb(0, *c_wall_light)
+    grad_wall.add_color_stop_rgb(1, *c_wall_dark)
+    rounded_rect(ctx, 0, -60, 70, 60, 2)
+    ctx.set_source(grad_wall); ctx.fill()
+
+    # Bangunan Samping (Kiri - Lebih gelap dikit)
+    ctx.set_source_rgb(*c_wall_dark)
+    rounded_rect(ctx, -50, -40, 50, 40, 2); ctx.fill()
+
+    # Fungsi Atap Kartun (Agak melengkung)
+    def draw_cartoon_roof(cx, cy, w, h):
+        ctx.save()
+        grad_roof = cairo.LinearGradient(cx, cy-h, cx, cy)
+        grad_roof.add_color_stop_rgb(0, *c_roof_light)
+        grad_roof.add_color_stop_rgb(1, *c_roof_dark)
+        ctx.set_source(grad_roof)
+        # Segitiga dengan sisi agak cembung
+        ctx.move_to(cx - w/2 - 5, cy)
+        ctx.curve_to(cx - w/4, cy - h*0.5, cx, cy - h - 5, cx, cy - h)
+        ctx.curve_to(cx, cy - h - 5, cx + w/4, cy - h*0.5, cx + w/2 + 5, cy)
         ctx.close_path()
         ctx.fill()
-    
-    # Pulau kecil kanan
-    island2_y_offset = math.sin(time * 0.025 + 2) * 4
-    
-    # Bayangan
-    ctx.set_source_rgba(0.3, 0.4, 0.2, 0.5)
-    ctx.arc(w * 0.85 + 5, h * 0.35 + island2_y_offset + 10, 55, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Badan pulau kecil
-    grad_island2 = cairo.RadialGradient(w * 0.85 - 10, h * 0.35 - 10, 0, w * 0.85, h * 0.35, 50)
-    grad_island2.add_color_stop_rgb(0, 0.6, 0.9, 0.5)
-    grad_island2.add_color_stop_rgb(1, 0.5, 0.8, 0.4)
-    
-    ctx.set_source(grad_island2)
-    ctx.arc(w * 0.85, h * 0.35 + island2_y_offset, 50, 0, 2 * math.pi)
-    ctx.fill()
-    
-    ctx.restore()
-
-def draw_butterflies(ctx, w, h, time=0):
-    """Menggambar kupu-kupu yang beterbangan dengan animasi sayap."""
-    ctx.save()
-    
-    # Kupu-kupu 1 dengan animasi sayap
-    butterfly_x = w * 0.3 + math.sin(time * 0.02) * 20
-    butterfly_y = h * 0.4 + math.sin(time * 0.03) * 15
-    wing_flap = math.sin(time * 0.2) * 0.3 + 0.7  # Animasi kepak sayap
-    
-    # Badan kupu-kupu
-    ctx.set_source_rgb(1, 0.8, 0.9)
-    ctx.arc(butterfly_x, butterfly_y, 6, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Sayap dengan gradien dan animasi
-    wing_grad = cairo.RadialGradient(butterfly_x, butterfly_y, 0, butterfly_x, butterfly_y, 15)
-    wing_grad.add_color_stop_rgba(0, 1, 0.7, 0.9, 0.9)
-    wing_grad.add_color_stop_rgba(1, 1, 0.6, 0.8, 0.6)
-    
-    ctx.set_source(wing_grad)
-    # Sayap kiri
-    ctx.save()
-    ctx.translate(butterfly_x, butterfly_y)
-    ctx.scale(1, wing_flap)
-    ctx.arc(-10, 0, 12, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.restore()
-    
-    # Sayap kanan
-    ctx.save()
-    ctx.translate(butterfly_x, butterfly_y)
-    ctx.scale(1, wing_flap)
-    ctx.arc(10, 0, 12, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.restore()
-    
-    # Kupu-kupu 2
-    butterfly_x2 = w * 0.7 + math.sin(time * 0.025 + 2) * 25
-    butterfly_y2 = h * 0.5 + math.sin(time * 0.035 + 1) * 20
-    wing_flap2 = math.sin(time * 0.18 + 1) * 0.3 + 0.7
-    
-    # Badan
-    ctx.set_source_rgb(0.8, 0.9, 1)
-    ctx.arc(butterfly_x2, butterfly_y2, 5, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Sayap dengan gradien berbeda
-    wing_grad2 = cairo.RadialGradient(butterfly_x2, butterfly_y2, 0, butterfly_x2, butterfly_y2, 12)
-    wing_grad2.add_color_stop_rgba(0, 0.7, 0.8, 1, 0.9)
-    wing_grad2.add_color_stop_rgba(1, 0.6, 0.7, 1, 0.6)
-    
-    ctx.set_source(wing_grad2)
-    # Sayap kiri
-    ctx.save()
-    ctx.translate(butterfly_x2, butterfly_y2)
-    ctx.scale(1, wing_flap2)
-    ctx.arc(-8, 0, 10, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.restore()
-    
-    # Sayap kanan
-    ctx.save()
-    ctx.translate(butterfly_x2, butterfly_y2)
-    ctx.scale(1, wing_flap2)
-    ctx.arc(8, 0, 10, 0, 2 * math.pi)
-    ctx.fill()
-    ctx.restore()
-    
-    ctx.restore()
-
-def draw_3d_hills(ctx, w, h):
-    """Menggambar bukit dengan efek 3D dan tekstur."""
-    ctx.save()
-    
-    # Bukit belakang dengan efek kedalaman
-    grad_hill_back = cairo.LinearGradient(0, h * 0.6, 0, h)
-    grad_hill_back.add_color_stop_rgb(0, 0.25, 0.6, 0.15)  # Puncak
-    grad_hill_back.add_color_stop_rgb(0.5, 0.3, 0.7, 0.2)   # Tengah
-    grad_hill_back.add_color_stop_rgb(1, 0.4, 0.8, 0.3)    # Bawah
-    
-    ctx.set_source(grad_hill_back)
-    ctx.move_to(0, h * 0.6)
-    ctx.curve_to(w * 0.2, h * 0.5, w * 0.6, h * 0.7, w, h * 0.6)
-    ctx.line_to(w, h)
-    ctx.line_to(0, h)
-    ctx.close_path()
-    ctx.fill()
-    
-    # Tekstur bukit belakang (garis kontur)
-    ctx.set_source_rgba(0.2, 0.5, 0.1, 0.3)
-    ctx.set_line_width(2)
-    for i in range(3):
-        y_pos = h * 0.6 + (h * 0.4 / 4) * (i + 1)
-        ctx.move_to(0, y_pos)
-        ctx.curve_to(w * 0.2, y_pos - 20, w * 0.6, y_pos + 20, w, y_pos)
-        ctx.stroke()
-    
-    # Bukit depan dengan efek 3D lebih kuat
-    grad_hill_front = cairo.LinearGradient(0, h * 0.75, 0, h)
-    grad_hill_front.add_color_stop_rgb(0, 0.4, 0.8, 0.25)   # Puncak (terang)
-    grad_hill_front.add_color_stop_rgb(0.3, 0.5, 0.85, 0.3) # Tengah
-    grad_hill_front.add_color_stop_rgb(1, 0.6, 0.9, 0.4)    # Bawah (sangat terang)
-    
-    ctx.set_source(grad_hill_front)
-    ctx.move_to(0, h * 0.75)
-    ctx.curve_to(w * 0.3, h * 0.7, w * 0.7, h * 0.9, w, h * 0.8)
-    ctx.line_to(w, h)
-    ctx.line_to(0, h)
-    ctx.close_path()
-    ctx.fill()
-    
-    # Highlight di puncak bukit depan
-    ctx.set_source_rgba(1, 1, 1, 0.2)
-    ctx.move_to(w * 0.3, h * 0.7)
-    ctx.curve_to(w * 0.4, h * 0.68, w * 0.6, h * 0.72, w * 0.7, h * 0.75)
-    ctx.stroke()
-    
-    ctx.restore()
-
-def draw_sky_background(ctx, w, h, time=0):
-    """Menggambar latar belakang langit dengan awan dan efek atmosfer."""
-    # Gradien langit dengan multiple color stops untuk efek lebih natural
-    grad_sky = cairo.LinearGradient(0, 0, 0, h)
-    grad_sky.add_color_stop_rgb(0, 0.3, 0.5, 0.9)   # Biru tua di atas
-    grad_sky.add_color_stop_rgb(0.3, 0.5, 0.7, 1.0) # Biru medium
-    grad_sky.add_color_stop_rgb(0.7, 0.7, 0.85, 1.0) # Biru muda
-    grad_sky.add_color_stop_rgb(1, 0.9, 0.95, 1.0)  # Sangat muda di horizon
-    
-    ctx.set_source(grad_sky)
-    ctx.paint()
-
-    # Matahari dengan glow effect
-    sun_glow = cairo.RadialGradient(w * 0.15, h * 0.2, 0, w * 0.15, h * 0.2, 80)
-    sun_glow.add_color_stop_rgba(0, 1, 1, 0.8, 0.8)
-    sun_glow.add_color_stop_rgba(0.5, 1, 0.95, 0.6, 0.4)
-    sun_glow.add_color_stop_rgba(1, 1, 0.9, 0.4, 0)
-    
-    ctx.set_source(sun_glow)
-    ctx.arc(w * 0.15, h * 0.2, 80, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Matahari utama
-    sun_grad = cairo.RadialGradient(w * 0.15 - 10, h * 0.2 - 10, 0, w * 0.15, h * 0.2, 50)
-    sun_grad.add_color_stop_rgb(0, 1, 1, 0.9)
-    sun_grad.add_color_stop_rgb(1, 1, 0.8, 0.3)
-    
-    ctx.set_source(sun_grad)
-    ctx.arc(w * 0.15, h * 0.2, 50, 0, 2 * math.pi)
-    ctx.fill()
-
-def draw_foreground_scenery(ctx, w, h, time=0):
-    """Menggambar elemen pemandangan depan dengan efek 3D."""
-    # Awan-awan kartun dengan animasi
-    draw_cartoon_cloud(ctx, w * 0.3, h * 0.25, 1.2, time)
-    draw_cartoon_cloud(ctx, w * 0.7, h * 0.15, 1.0, time)
-    draw_cartoon_cloud(ctx, w * 0.9, h * 0.3, 0.8, time)
-    draw_cartoon_cloud(ctx, w * 0.1, h * 0.35, 0.9, time)
-
-    # Bukit dengan efek 3D
-    draw_3d_hills(ctx, w, h)
-
-    # Monster mengintip dari belakang bukit
-    draw_map_monster(ctx, w * 0.7, h * 0.55, time)
-
-    # Tambahkan bunga-bunga kecil di bukit depan
-    ctx.set_source_rgb(1, 0.8, 0.9)
-    for i in range(8):
-        x = w * (0.1 + i * 0.1)
-        flower_y = h * 0.76 + math.sin(x * 0.1) * 5
-        ctx.arc(x, flower_y, 2 + (i % 3), 0, 2 * math.pi)
-        ctx.fill()
-
-def get_3d_path_points(points, segments=20):
-    """Menghasilkan titik-titik jalur dengan efek perspektif 3D."""
-    spline_points = []
-    elevations = []  # Tinggi setiap titik untuk efek 3D
-    
-    for i in range(len(points) - 1):
-        p0 = points[max(0, i - 1)]
-        p1 = points[i]
-        p2 = points[i + 1]
-        p3 = points[min(len(points) - 1, i + 2)]
-        
-        for t_int in range(segments):
-            t = t_int / segments
-            
-            # Koordinat X, Y biasa
-            x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t**2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t**3)
-            y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t**2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t**3)
-            
-            # Hitung elevasi (efek bukit dan lembah)
-            elevation = math.sin(i + t) * 15 + 10  # Gelombang antara 0-25 pixel
-            elevations.append(elevation)
-            
-            spline_points.append((x, y - elevation))  # Kurangi Y untuk efek 3D
-    
-    spline_points.append((points[-1][0], points[-1][1] - elevations[-1] if elevations else 0))
-    return spline_points, elevations
-
-def draw_3d_winding_path(ctx, levels, time=0):
-    """Menggambar jalur meliuk dengan efek 3D dan perspektif."""
-    if len(levels) < 2: return
-
-    points = [tuple(l['pos']) for l in levels]
-    spline_points, elevations = get_3d_path_points(points)
-
-    ctx.save()
-    
-    # Bayangan jalur dengan efek kedalaman
-    ctx.set_source_rgba(0.1, 0.05, 0, 0.5)
-    ctx.set_line_width(35)
-    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-    
-    ctx.move_to(spline_points[0][0] + 8, spline_points[0][1] + 12)
-    for i, p in enumerate(spline_points[1:]):
-        shadow_offset = 8 + elevations[i] * 0.1  # Shadow mengikuti elevasi
-        ctx.line_to(p[0] + shadow_offset, p[1] + shadow_offset)
-    ctx.stroke()
-
-    # Jalur utama dengan gradien 3D
-    grad_path = cairo.LinearGradient(0, 0, 0, 720)
-    grad_path.add_color_stop_rgb(0, 0.95, 0.9, 0.8)  # Terang di atas
-    grad_path.add_color_stop_rgb(0.3, 0.9, 0.85, 0.7)
-    grad_path.add_color_stop_rgb(0.7, 0.8, 0.75, 0.6)
-    grad_path.add_color_stop_rgb(1, 0.7, 0.65, 0.5)   # Gelap di bawah
-    
-    ctx.set_source(grad_path)
-    ctx.set_line_width(28)
-    
-    ctx.move_to(spline_points[0][0], spline_points[0][1])
-    for p in spline_points[1:]:
-        ctx.line_to(p[0], p[1])
-    ctx.stroke()
-
-    # Highlight di tengah jalan untuk efek 3D
-    ctx.set_source_rgba(1, 1, 1, 0.4)
-    ctx.set_line_width(8)
-    
-    ctx.move_to(spline_points[0][0], spline_points[0][1])
-    for p in spline_points[1:]:
-        ctx.line_to(p[0], p[1])
-    ctx.stroke()
-
-    # Tambahkan tekstur batu-batu dengan variasi ukuran
-    ctx.set_source_rgba(1, 1, 1, 0.5)
-    for i in range(0, len(spline_points), 6):
-        if i < len(spline_points):
-            p = spline_points[i]
-            stone_size = 2 + (i % 4)  # Variasi ukuran batu
-            ctx.arc(p[0], p[1], stone_size, 0, 2 * math.pi)
-            ctx.fill()
-
-    # Garis pembatas jalan (pinggiran)
-    ctx.set_source_rgba(0.6, 0.5, 0.4, 0.8)
-    ctx.set_line_width(3)
-    
-    # Pinggiran kiri
-    ctx.move_to(spline_points[0][0] - 12, spline_points[0][1])
-    for p in spline_points[1:]:
-        ctx.line_to(p[0] - 12, p[1])
-    ctx.stroke()
-    
-    # Pinggiran kanan
-    ctx.move_to(spline_points[0][0] + 12, spline_points[0][1])
-    for p in spline_points[1:]:
-        ctx.line_to(p[0] + 12, p[1])
-    ctx.stroke()
-    
-    ctx.restore()
-
-def draw_crystal_level_node(ctx, x, y, level_id, state, is_hovered, time=0):
-    """Menggambar node kristal dengan efek 3D dan animasi."""
-    ctx.save()
-    ctx.translate(x, y)
-
-    # Animasi mengambang
-    float_offset = math.sin(time * 0.05 + level_id) * 3
-    ctx.translate(0, float_offset)
-
-    scale = 1.4 if is_hovered and state != 'locked' else 1.0
-    ctx.scale(scale, scale)
-
-    if state == 'locked':
-        draw_3d_lock_icon(ctx, -25, -25, 50, time)
+        # Garis bawah atap
+        ctx.set_source_rgb(0.3, 0.15, 0.1)
+        ctx.set_line_width(3)
+        ctx.move_to(cx - w/2 - 5, cy); ctx.line_to(cx + w/2 + 5, cy); ctx.stroke()
         ctx.restore()
-        return
 
-    # Warna berdasarkan state dengan gradien 3D
-    if state == 'unlocked':
-        base_color = (0.4, 0.8, 1.0)  # Biru
-        highlight_color = (0.6, 0.95, 1.0)
-        shadow_color = (0.2, 0.4, 0.8)
-        glow_color = (0.6, 0.9, 1.0, 0.6)
-    else: # 'current'
-        base_color = (1.0, 0.8, 0.0)  # Kuning
-        highlight_color = (1.0, 0.95, 0.6)
-        shadow_color = (0.8, 0.5, 0.0)
-        glow_color = (1.0, 0.9, 0.3, 0.8)
+    # Gambar Atap
+    draw_cartoon_roof(35, -60, 80, 40) # Atap Kanan
+    draw_cartoon_roof(-25, -40, 60, 30) # Atap Kiri
 
-    # Efek glow dan bayangan 3D
-    if is_hovered:
-        # Outer glow
-        ctx.set_source_rgba(*glow_color)
-        for i in range(3):
-            glow_size = 40 + i * 5
-            ctx.arc(0, 0, glow_size, 0, 2 * math.pi)
-            ctx.fill()
+    # Cerobong Asap
+    ctx.set_source_rgb(0.5, 0.2, 0.1); ctx.rectangle(50, -85, 12, 25); ctx.fill()
+    ctx.set_source_rgb(0.9, 0.9, 0.95); ctx.rectangle(48, -87, 16, 5); ctx.fill() # Topi cerobong
 
-    # Bayangan di bawah kristal
-    ctx.set_source_rgba(0, 0, 0, 0.4)
-    ctx.arc(4, 4, 32, 0, 2 * math.pi)
+    # Asap Bulat-bulat
+    ctx.set_source_rgba(1, 1, 1, 0.6)
+    ctx.arc(56, -95, 5, 0, 2*math.pi); ctx.fill()
+    ctx.arc(62, -102, 7, 0, 2*math.pi); ctx.fill()
+
+    # Jendela Glossy (Kuning Terang)
+    ctx.set_source_rgb(1.0, 0.9, 0.3)
+    rounded_rect(ctx, 15, -50, 15, 15, 2); ctx.fill()
+    rounded_rect(ctx, 40, -50, 15, 15, 2); ctx.fill()
+    rounded_rect(ctx, -35, -30, 15, 15, 2); ctx.fill()
+    
+    # Frame Jendela
+    ctx.set_source_rgb(0.4, 0.25, 0.15); ctx.set_line_width(2)
+    ctx.rectangle(15, -50, 15, 15); ctx.stroke()
+    ctx.rectangle(40, -50, 15, 15); ctx.stroke()
+    ctx.rectangle(-35, -30, 15, 15); ctx.stroke()
+
+    # Pintu Bulat (Pusatnya ada di x=35, y=-15)
+    ctx.set_source_rgb(0.4, 0.2, 0.1)
+    ctx.arc(35, -15, 12, math.pi, 0); ctx.fill() # Atas pintu
+    ctx.rectangle(23, -15, 24, 15); ctx.fill()   # Bawah pintu
+    
+    # Gagang Pintu
+    ctx.set_source_rgb(1, 0.8, 0.2); ctx.arc(42, -10, 2, 0, 2*math.pi); ctx.fill() 
+
+    ctx.restore()
+    
+def draw_haunted_house(ctx, x, y):
+    """Rumah Hantu (Hard) - Mansion Gothic yang lebih detail."""
+    ctx.save()
+    ctx.translate(x, y + 5)
+    ctx.scale(1.4, 1.4)
+
+    # Warna Tema Gelap
+    c = {
+        'wall': (0.2, 0.2, 0.25),       # Abu-abu kebiruan mati
+        'wall_dark': (0.15, 0.15, 0.2), # Sisi gelap
+        'roof': (0.08, 0.08, 0.12),     # Hitam pekat
+        'glow': (1.0, 0.2, 0.1),        # Merah menyala (Mata/Jendela)
+        'door': (0.1, 0.08, 0.05),      # Kayu busuk
+        'detail': (0.05, 0.05, 0.08)    # Hitam (Pagar/Besi)
+    }
+
+    # Efek Miring (Agar terlihat tua/seram)
+    ctx.save()
+    ctx.rotate(0.05)
+
+    # --- Bangunan Utama ---
+    # Menara Utama (Tengah)
+    ctx.set_source_rgb(*c['wall'])
+    ctx.rectangle(-20, -70, 40, 70); ctx.fill()
+    
+    # Menara Samping (Kiri - Lebih Pendek)
+    ctx.set_source_rgb(*c['wall_dark'])
+    ctx.rectangle(-55, -50, 35, 50); ctx.fill()
+    
+    # Menara Samping (Kanan - Kurus)
+    ctx.rectangle(20, -60, 20, 60); ctx.fill()
+
+    # --- Atap Runcing (Gothic) ---
+    ctx.set_source_rgb(*c['roof'])
+    
+    # Atap Utama (Melengkung Runcing)
+    ctx.move_to(-25, -70)
+    ctx.curve_to(-10, -110, 10, -110, 25, -70)
+    ctx.close_path(); ctx.fill()
+    # Puncak Menara Utama
+    ctx.move_to(-2, -110); ctx.line_to(0, -135); ctx.line_to(2, -110); ctx.fill()
+
+    # Atap Kiri
+    ctx.move_to(-60, -50); ctx.line_to(-37, -90); ctx.line_to(-20, -50); ctx.fill()
+    
+    # Atap Kanan
+    ctx.move_to(15, -60); ctx.line_to(30, -95); ctx.line_to(45, -60); ctx.fill()
+
+    # --- Jendela Menyala (Seperti Wajah) ---
+    ctx.set_source_rgba(*c['glow'], 0.9)
+    
+    # Jendela Utama (Bulat besar di atas)
+    ctx.arc(0, -55, 6, 0, 2*math.pi); ctx.fill()
+    
+    # Jendela Bawah (Dua mata marah)
+    # Kiri
+    ctx.move_to(-12, -30); ctx.line_to(-4, -30); ctx.line_to(-12, -22); ctx.fill()
+    # Kanan
+    ctx.move_to(12, -30); ctx.line_to(4, -30); ctx.line_to(12, -22); ctx.fill()
+
+    # Jendela Menara Samping (Sempit panjang)
+    rounded_rect(ctx, -45, -35, 6, 15, 2); ctx.fill()
+    rounded_rect(ctx, 27, -40, 6, 12, 2); ctx.fill()
+
+    # --- Pintu Gerbang (Besi Berkarat) ---
+    ctx.set_source_rgb(*c['door'])
+    ctx.arc(0, 0, 12, math.pi, 0); ctx.fill()
+    
+    # Jeruji Besi
+    ctx.set_source_rgb(*c['detail']); ctx.set_line_width(1.5)
+    for i in range(-8, 9, 4):
+        ctx.move_to(i, -10); ctx.line_to(i, 0); ctx.stroke()
+
+    # --- Detail Tambahan (Balkon/Kayu) ---
+    ctx.set_line_width(2); ctx.set_source_rgb(0.1, 0.1, 0.15)
+    ctx.move_to(-55, -20); ctx.line_to(-20, -20); ctx.stroke() # Garis menara kiri
+    ctx.move_to(20, -30); ctx.line_to(40, -30); ctx.stroke()   # Garis menara kanan
+
+    ctx.restore() # Selesai rotasi gedung
+
+    # --- Lingkungan Sekitar ---
+    
+    # Pohon Mati / Ranting Kering (Kiri)
+    ctx.set_source_rgb(0.1, 0.05, 0.05); ctx.set_line_width(2)
+    ctx.save(); ctx.translate(-65, 0)
+    ctx.move_to(0, 0); ctx.curve_to(-5, -15, 5, -20, -2, -35); ctx.stroke() # Batang utama
+    ctx.move_to(-2, -15); ctx.line_to(-10, -25); ctx.stroke() # Cabang
+    ctx.move_to(0, -20); ctx.line_to(8, -28); ctx.stroke()    # Cabang
+    ctx.restore()
+
+    # Batu Nisan Miring (Kanan)
+    ctx.save(); ctx.translate(55, 5); ctx.rotate(0.2)
+    ctx.set_source_rgb(0.3, 0.3, 0.35)
+    rounded_rect(ctx, -8, -15, 16, 15, 4); ctx.fill() # Batu
+    ctx.set_source_rgba(0,0,0,0.5); ctx.set_line_width(2)
+    ctx.move_to(0, -10); ctx.line_to(0, -2); ctx.stroke() # Salib vertikal
+    ctx.move_to(-3, -7); ctx.line_to(3, -7); ctx.stroke() # Salib horizontal
+    ctx.restore()
+
+    # Kelelawar Kecil (Siluet di atas)
+    ctx.set_source_rgb(0, 0, 0)
+    def draw_bat(bx, by, s):
+        ctx.save(); ctx.translate(bx, by); ctx.scale(s, s)
+        ctx.move_to(0, 0)
+        ctx.curve_to(5, -5, 10, 0, 15, -2) # Sayap kanan
+        ctx.line_to(0, 5)                  # Badan bawah
+        ctx.line_to(-15, -2)               # Sayap kiri
+        ctx.curve_to(-10, 0, -5, -5, 0, 0)
+        ctx.fill(); ctx.restore()
+    
+    draw_bat(30, -110, 0.6)
+    draw_bat(-40, -120, 0.4)
+
+    ctx.restore()
+
+# --- FUNGSI UTAMA: JALAN & NODE ---
+
+def get_bezier_points(points, segments=20):
+    """Smoothing jalan."""
+    spline = []
+    if len(points) < 2: return points
+    for i in range(len(points) - 1):
+        p0, p1 = points[i], points[i+1]
+        dx, dy = p1[0]-p0[0], p1[1]-p0[1]
+        cx1, cy1 = p0[0]+dx*0.5, p0[1]+dy*0.1; cx2, cy2 = p1[0]-dx*0.5, p1[1]-dy*0.1
+        for j in range(segments):
+            t = j/segments
+            x = (1-t)**3*p0[0] + 3*(1-t)**2*t*cx1 + 3*(1-t)*t**2*cx2 + t**3*p1[0]
+            y = (1-t)**3*p0[1] + 3*(1-t)**2*t*cy1 + 3*(1-t)*t**2*cy2 + t**3*p1[1]
+            spline.append((x,y))
+    spline.append(points[-1])
+    return spline
+
+def draw_3d_winding_path(ctx, levels, time, difficulty="easy"):
+    if not levels: return
+    t_conf = THEMES.get(difficulty, THEMES['easy'])
+    path_points = get_bezier_points([l['pos'] for l in levels], segments=40)
+    
+    ctx.save()
+    # Bayangan
+    ctx.set_line_cap(cairo.LINE_CAP_ROUND); ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+    ctx.set_line_width(55); ctx.set_source_rgba(0,0,0,0.3)
+    ctx.move_to(*path_points[0]); 
+    for p in path_points[1:]: ctx.line_to(*p); 
+    ctx.stroke()
+    # Pinggir
+    ctx.set_line_width(48); ctx.set_source_rgb(*t_conf['path_edge'])
+    ctx.move_to(*path_points[0]); 
+    for p in path_points[1:]: ctx.line_to(*p); 
+    ctx.stroke()
+    # Tengah
+    ctx.set_line_width(38); ctx.set_source_rgb(*t_conf['path_center'])
+    ctx.move_to(*path_points[0]); 
+    for p in path_points[1:]: ctx.line_to(*p); 
+    ctx.stroke()
+    # Garis Putus
+    ctx.set_line_width(4); ctx.set_dash([8, 12]); ctx.set_source_rgba(0,0,0,0.2)
+    ctx.move_to(*path_points[0]); 
+    for p in path_points[1:]: ctx.line_to(*p); 
+    ctx.stroke()
+    ctx.restore()
+
+    # RUMAH DI UJUNG
+    if path_points:
+        last = path_points[-1]
+        ht = t_conf['house']
+        if ht == 'cottage': draw_cottage(ctx, last[0], last[1])
+        elif ht == 'haunted': draw_haunted_house(ctx, last[0], last[1])
+        else: draw_castle(ctx, last[0], last[1])
+
+def draw_crystal_level_node(ctx, x, y, level_id, state, is_hovered, time, difficulty="easy"):
+    ctx.save(); ctx.translate(x, y)
+    ctx.translate(0, math.sin(time * 0.05 + level_id * 0.5) * 5)
+    ctx.scale(1.2 if is_hovered else 1.0, 1.2 if is_hovered else 1.0)
+
+    # Warna Node sesuai tema
+    if state == 'locked':
+        fill = (0.5, 0.5, 0.5); border = (0.3, 0.3, 0.3)
+    elif state == 'current':
+        fill = (1.0, 0.9, 0.2); border = (0.8, 0.6, 0.0)
+    else:
+        if difficulty == 'medium': fill, border = (0.9, 0.5, 0.2), (0.6, 0.3, 0.1) # Oranye
+        elif difficulty == 'hard': fill, border = (0.5, 0.2, 0.7), (0.3, 0.1, 0.5) # Ungu
+        else: fill, border = (0.3, 0.8, 0.4), (0.1, 0.5, 0.2) # Hijau
+
+    # Bayangan & Badan
+    ctx.set_source_rgba(0,0,0,0.3); ctx.arc(0, 5, 23, 0, 2*math.pi); ctx.fill()
+    ctx.set_source_rgb(*fill); ctx.arc(0, 0, 25, 0, 2*math.pi); ctx.fill()
+    ctx.set_line_width(4); ctx.set_source_rgb(*border); ctx.stroke()
+    ctx.set_source_rgba(1,1,1,0.4); ctx.arc(-8, -8, 6, 0, 2*math.pi); ctx.fill()
+
+    # Isi Node
+    if state == 'locked':
+        ctx.set_source_rgba(0.2,0.2,0.2,0.6); rounded_rect(ctx, -8, -6, 16, 14, 2); ctx.fill()
+        ctx.set_line_width(3); ctx.move_to(-7,-6); ctx.line_to(-7,-12); ctx.arc(0,-12,7,math.pi,0); ctx.line_to(7,-6); ctx.stroke()
+    else:
+        ctx.select_font_face("Comic Sans MS", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        ctx.set_font_size(24); t=str(level_id); ext=ctx.text_extents(t)
+        ctx.set_source_rgba(0,0,0,0.5); ctx.move_to(-ext.width/2+2, -ext.height/2-ext.y_bearing+2); ctx.show_text(t)
+        ctx.set_source_rgb(1,1,1); ctx.move_to(-ext.width/2, -ext.height/2-ext.y_bearing); ctx.show_text(t)
+    ctx.restore()
+
+def draw_ui_button(ctx, x, y, w, h, text, color="GREEN", state="normal", font_size=40):
+    """Tombol Game Mewah dengan status hover dan press"""
+    ctx.save()
+    
+    # Penyesuaian offset untuk efek ditekan
+    press_offset = 2 if state == "pressed" else 0
+    ctx.translate(x, y + press_offset)
+
+    # Tentukan palet warna dasar
+    if color == "GREEN":
+            top, mid, bot = (0.5, 0.8, 0.1), (0.3, 0.6, 0.0), (0.2, 0.4, 0.0)
+            txt_col = (0.1, 0.3, 0.0)
+            txt_shadow_col = (1, 1, 0.7)
+    elif color == "BLUE":
+            top, mid, bot = (0.2, 0.3, 0.7), (0.1, 0.2, 0.5), (0.0, 0.1, 0.3)
+            txt_col = (0.8, 0.9, 1.0) # Reverted to original
+            txt_shadow_col = (0.1, 0.1, 0.2)
+    elif color == "PURPLE":
+            top, mid, bot = (0.4, 0.2, 0.6), (0.3, 0.1, 0.5), (0.2, 0.0, 0.3)
+            txt_col = (1.0, 0.9, 1.0) # Light lavender
+            txt_shadow_col = (0.2, 0.0, 0.3)
+    else:  # ORANGE
+            top, mid, bot = (1.0, 0.8, 0.0), (1.0, 0.6, 0.0), (0.8, 0.4, 0.0)
+            txt_col = (0.6, 0.2, 0.0)
+            txt_shadow_col = (1, 1, 0.7)
+            
+    # Penyesuaian warna berdasarkan state
+    if state == "hover":
+        # Jadikan warna lebih cerah saat hover
+        top = tuple(min(1.0, c + 0.15) for c in top)
+        mid = tuple(min(1.0, c + 0.15) for c in mid)
+    elif state == "pressed":
+        # Jadikan warna lebih gelap saat ditekan
+        top = tuple(max(0.0, c - 0.15) for c in top)
+        mid = tuple(max(0.0, c - 0.15) for c in mid)
+
+    r = 20  # Radius sudut
+
+    # 1. Bayangan Drop Shadow (lebih kecil saat ditekan)
+    shadow_offset = 3 if state == "pressed" else 5
+    ctx.set_source_rgba(0, 0, 0, 0.3)
+    rounded_rect(ctx, 0, shadow_offset, w, h, r)
     ctx.fill()
 
-    # Bentuk dasar kristal (octagon untuk efek lebih kristalin)
-    angle_step = 2 * math.pi / 8
-    points = [(math.sin(i * angle_step) * 30, -math.cos(i * angle_step) * 30) for i in range(8)]
+    # 2. Badan Tombol (Gradien Vertikal)
+    # grad = cairo.LinearGradient(0, 0, 0, h)
+    # grad.add_color_stop_rgb(0, *top)
+    # grad.add_color_stop_rgb(1, *mid)
+    # rounded_rect(ctx, 0, 0, w, h, r)
+    # ctx.set_source(grad)
+    # ctx.fill()
+    rounded_rect(ctx, 0, 0, w, h, r)
+    ctx.set_source_rgb(*bot)
+    ctx.fill()
 
-    # Badan utama dengan gradien radial 3D
-    ctx.move_to(points[-1][0], points[-1][1])
-    for p in points: 
-        ctx.line_to(p[0], p[1])
-    ctx.close_path()
+    # 3. Efek 3D Bawah (Tebal)
+    # ctx.save()
+    # ctx.rectangle(0, h / 2, w, h)
+    # ctx.clip()
+    # rounded_rect(ctx, 0, 0, w, h, r)
+    # ctx.set_source_rgb(*bot)
+    # ctx.set_line_width(6)
+    # ctx.stroke()
+    # ctx.restore()
+    tebal_3d = 6
+    rounded_rect(ctx, 0, 0, w, h - tebal_3d, r)
     
-    grad_body = cairo.RadialGradient(-10, -15, 0, 0, 0, 35)
-    grad_body.add_color_stop_rgb(0, *highlight_color)
-    grad_body.add_color_stop_rgb(0.6, *base_color)
-    grad_body.add_color_stop_rgb(1, *shadow_color)
+    grad = cairo.LinearGradient(0, 0, 0, h - tebal_3d)
+    grad.add_color_stop_rgb(0, *top)
+    grad.add_color_stop_rgb(1, *mid)
     
-    ctx.set_source(grad_body)
-    ctx.fill_preserve()
+    ctx.set_source(grad)
+    ctx.fill()
+
+    # 4. Highlight Kaca (dikurangi saat ditekan)
+    if state != "pressed":
+        gloss_alpha = 0.7 if state == "hover" else 0.6
+        grad_gloss = cairo.LinearGradient(0, 0, 0, h / 2)
+        grad_gloss.add_color_stop_rgba(0, 1, 1, 1, gloss_alpha)
+        grad_gloss.add_color_stop_rgba(1, 1, 1, 1, 0.1)
+
+        ctx.save()
+        rounded_rect(ctx, 10, 5, w - 20, h / 2 - 5, r - 5)
+        ctx.set_source(grad_gloss)
+        ctx.fill()
+        ctx.restore()
+
+    # 5. Teks Tombol
+    ctx.select_font_face("Verdana", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+    ctx.set_font_size(font_size)
+    ext = ctx.text_extents(text)
+
+    # Posisi teks yang benar-benar di tengah
+    text_x_pos = w / 2 - ext.width / 2 - ext.x_bearing
+    text_y_pos = h / 2 - ext.height / 2 - ext.y_bearing
     
-    # Border dengan gradien untuk efek 3D
-    border_grad = cairo.LinearGradient(-30, -30, 30, 30)
-    border_grad.add_color_stop_rgb(0, *[min(1, c + 0.4) for c in base_color])
-    border_grad.add_color_stop_rgb(0.5, *base_color)
-    border_grad.add_color_stop_rgb(1, *shadow_color)
-    
-    ctx.set_source(border_grad)
+    # Shadow Teks
+    ctx.move_to(text_x_pos, text_y_pos)
+    ctx.text_path(text)
+    ctx.set_source_rgb(1, 1, 0.7)
     ctx.set_line_width(4)
     ctx.stroke()
 
-    # Kilau (Shine) dengan animasi
-    shine_alpha = 0.7 + math.sin(time * 0.1) * 0.2
-    ctx.set_source_rgba(1, 1, 1, shine_alpha)
-    
-    # Multiple shine spots untuk efek kristal
-    ctx.move_to(-15, -20)
-    ctx.curve_to(-8, -25, -3, -18, -6, -10)
-    ctx.curve_to(-10, -8, -16, -12, -15, -20)
-    ctx.close_path()
-    ctx.fill()
-    
-    ctx.arc(10, -15, 8, 0, 2 * math.pi)
-    ctx.fill()
+    # Isi Teks
+    ctx.move_to(text_x_pos, text_y_pos)
+    ctx.set_source_rgb(*txt_col)
+    ctx.show_text(text)
 
-    # Teks nomor level dengan efek 3D
-    ctx.select_font_face("Comic Sans MS", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-    ctx.set_font_size(18)
-    text = str(level_id)
-    ext = ctx.text_extents(text)
-    
-    text_x = -ext.width / 2 - ext.x_bearing
-    text_y = -ext.height / 2 - ext.y_bearing
-    
-    # Bayangan teks untuk efek 3D
-    ctx.move_to(text_x + 2, text_y + 2)
-    ctx.set_source_rgba(0, 0, 0, 0.6)
-    ctx.show_text(text)
-    
-    # Teks utama dengan gradien
-    text_grad = cairo.LinearGradient(text_x, text_y, text_x, text_y + 20)
-    text_grad.add_color_stop_rgb(0, 1, 1, 1)
-    text_grad.add_color_stop_rgb(1, 0.9, 0.9, 0.9)
-    
-    ctx.move_to(text_x, text_y)
-    ctx.set_source(text_grad)
-    ctx.show_text(text)
-    
-    ctx.restore()
-
-def draw_3d_lock_icon(ctx, x, y, size, time=0):
-    """Menggambar ikon kunci dengan efek 3D."""
-    ctx.save()
-    ctx.translate(x + size/2, y + size/2)
-    
-    # Animasi bergetar untuk kunci terkunci
-    shake_x = math.sin(time * 0.3) * 1 if time % 60 < 30 else 0
-    
-    # Bayangan kunci
-    ctx.set_source_rgba(0.2, 0.2, 0.3, 0.6)
-    ctx.rectangle(-12 + shake_x + 2, -8 + 2, 24, 25)
-    ctx.fill()
-    
-    # Badan kunci dengan gradien metalik
-    metal_grad = cairo.LinearGradient(-12, -8, -12, 17)
-    metal_grad.add_color_stop_rgb(0, 0.7, 0.7, 0.8)  # Highlight
-    metal_grad.add_color_stop_rgb(0.5, 0.5, 0.5, 0.6)  # Mid
-    metal_grad.add_color_stop_rgb(1, 0.3, 0.3, 0.4)   # Shadow
-    
-    ctx.set_source(metal_grad)
-    ctx.rectangle(-12 + shake_x, -8, 24, 25)
-    ctx.fill()
-    
-    # Lingkaran kunci
-    circle_grad = cairo.RadialGradient(-5 + shake_x, -20, 0, 0 + shake_x, -15, 10)
-    circle_grad.add_color_stop_rgb(0, 0.8, 0.8, 0.9)
-    circle_grad.add_color_stop_rgb(1, 0.4, 0.4, 0.5)
-    
-    ctx.set_source(circle_grad)
-    ctx.arc(0 + shake_x, -15, 10, 0, 2 * math.pi)
-    ctx.fill()
-    
-    # Lubang kunci
-    ctx.set_source_rgb(0.2, 0.2, 0.3)
-    ctx.rectangle(-4 + shake_x, -5, 8, 15)
-    ctx.fill()
-    
-    # Kilau pada kunci
-    ctx.set_source_rgba(1, 1, 1, 0.8)
-    ctx.rectangle(-8 + shake_x, -3, 5, 2)
-    ctx.fill()
-    
-    # Highlight lingkaran
-    ctx.set_source_rgba(1, 1, 1, 0.6)
-    ctx.arc(-3 + shake_x, -20, 3, 0, 2 * math.pi)
-    ctx.fill()
-    
-    ctx.restore()
-
-def draw_ui_button(ctx, x, y, width, height, text, is_hovered=False, is_pressed=False, time=0):
-    """Menggambar tombol UI dengan efek 3D dan animasi."""
-    ctx.save()
-    
-    # Animasi tombol
-    pulse = math.sin(time * 0.1) * 0.05 + 1.0 if is_hovered else 1.0
-    
-    # Warna tombol berdasarkan state
-    if is_pressed:
-        base_color = (0.7, 0.4, 0.1)
-        shadow_offset = 2
-        bevel = -2  # Efek tekan
-    elif is_hovered:
-        base_color = (1.0, 0.7, 0.2)
-        shadow_offset = 4
-        bevel = 0
-    else:
-        base_color = (1.0, 0.6, 0.2)
-        shadow_offset = 5
-        bevel = 2
-    
-    # Bayangan tombol
-    ctx.set_source_rgba(0.1, 0.05, 0, 0.5)
-    rounded_rect(ctx, x + shadow_offset, y + shadow_offset, width, height, 15)
-    ctx.fill()
-    
-    # Badan tombol dengan gradien 3D
-    btn_grad = cairo.LinearGradient(x, y, x, y + height)
-    btn_grad.add_color_stop_rgb(0, *[min(1, c + 0.3) for c in base_color])  # Top highlight
-    btn_grad.add_color_stop_rgb(0.1, *[min(1, c + 0.2) for c in base_color])
-    btn_grad.add_color_stop_rgb(0.5, *base_color)  # Middle
-    btn_grad.add_color_stop_rgb(0.9, *[max(0, c - 0.1) for c in base_color])
-    btn_grad.add_color_stop_rgb(1, *[max(0, c - 0.2) for c in base_color])  # Bottom shadow
-    
-    ctx.set_source(btn_grad)
-    rounded_rect(ctx, x + bevel, y + bevel, width, height, 15)
-    ctx.fill_preserve()
-    
-    # Border dengan gradien
-    border_grad = cairo.LinearGradient(x, y, x, y + height)
-    border_grad.add_color_stop_rgb(0, 1, 1, 1)  # Top highlight
-    border_grad.add_color_stop_rgb(1, 0.7, 0.7, 0.7)  # Bottom shadow
-    
-    ctx.set_source(border_grad)
-    ctx.set_line_width(2)
-    ctx.stroke()
-    
-    # Efek highlight di bagian atas tombol
-    highlight_grad = cairo.LinearGradient(x, y, x, y + height/3)
-    highlight_grad.add_color_stop_rgba(0, 1, 1, 1, 0.4)
-    highlight_grad.add_color_stop_rgba(1, 1, 1, 1, 0)
-    
-    ctx.set_source(highlight_grad)
-    rounded_rect(ctx, x + bevel, y + bevel, width, height/2, 15)
-    ctx.fill()
-    
-    # Teks tombol dengan efek 3D
-    ctx.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-    ctx.set_font_size(18 * pulse)  # Animasi pulse saat hover
-    
-    # Bayangan teks
-    text_extents = ctx.text_extents(text)
-    text_x = x + (width - text_extents.width) / 2
-    text_y = y + (height + text_extents.height) / 2 - text_extents.y_bearing
-    
-    ctx.move_to(text_x + 2, text_y + 2)
-    ctx.set_source_rgba(0, 0, 0, 0.5)
-    ctx.show_text(text)
-    
-    # Teks utama dengan gradien
-    text_grad = cairo.LinearGradient(text_x, text_y, text_x, text_y + text_extents.height)
-    text_grad.add_color_stop_rgb(0, 1, 1, 1)  # Top highlight
-    text_grad.add_color_stop_rgb(1, 0.9, 0.9, 0.9)  # Bottom
-    
-    ctx.move_to(text_x, text_y)
-    ctx.set_source(text_grad)
-    ctx.show_text(text)
-    
     ctx.restore()

@@ -1,6 +1,8 @@
 {
     "unlocked_levels": [
-        "easy"
+        "easy",
+        "medium",
+        "hard"
     ],
     "lives": 3,
     "current_level": {
