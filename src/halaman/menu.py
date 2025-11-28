@@ -82,7 +82,10 @@ class MenuScene(Gtk.DrawingArea):
                 self.change_scene("pilihan_level_scene")
             elif self.pressed_button_name == "Options":
                 self.change_scene("options_scene")
-            # Tambahkan logika untuk tombol lain jika perlu
+            elif self.pressed_button_name == "Credit":
+                self.change_scene("credit_scene")
+            elif self.pressed_button_name == "Quit":
+                Gtk.main_quit()
         
         self.pressed_button_name = None # Reset status press setelah dilepas
 
@@ -98,9 +101,10 @@ class MenuScene(Gtk.DrawingArea):
         scale_x = self.width / v_width
         scale_y = self.height / v_height
         
-        self.buttons.append({'rect': (275 * scale_x, 250 * scale_y, 250 * scale_x, 80 * scale_y), 'name': "Play", 'color': "GREEN"})
-        self.buttons.append({'rect': (275 * scale_x, 345 * scale_y, 250 * scale_x, 70 * scale_y), 'name': "Options", 'color': "ORANGE"})
-        self.buttons.append({'rect': (275 * scale_x, 430 * scale_y, 250 * scale_x, 70 * scale_y), 'name': "Help", 'color': "ORANGE"})
+        self.buttons.append({'rect': (275 * scale_x, 250 * scale_y, 250 * scale_x, 70 * scale_y), 'name': "Play", 'color': "GREEN"})
+        self.buttons.append({'rect': (275 * scale_x, 330 * scale_y, 250 * scale_x, 60 * scale_y), 'name': "Options", 'color': "ORANGE"})
+        self.buttons.append({'rect': (275 * scale_x, 400 * scale_y, 250 * scale_x, 60 * scale_y), 'name': "Credit", 'color': "ORANGE"})
+        self.buttons.append({'rect': (275 * scale_x, 470 * scale_y, 250 * scale_x, 60 * scale_y), 'name': "Quit", 'color': "ORANGE"})
 
     def _draw_background(self, ctx, w, h):
         grad_sky = cairo.LinearGradient(0, 0, 0, h)
@@ -137,9 +141,13 @@ class MenuScene(Gtk.DrawingArea):
 
         # Gambar tombol dengan state interaktif
         for btn_info in self.buttons:
-            v_x, v_y, v_w, v_h = 275, 250, 250, 80
-            if btn_info['name'] == "Options": v_y, v_h = 345, 70
-            if btn_info['name'] == "Help": v_y, v_h = 430, 70
+            # Mengambil posisi dari data tombol yang sudah diskalakan
+            v_x, v_y, v_w, v_h = btn_info['rect']
+            # Konversi kembali ke virtual coordinates untuk drawing function
+            v_x /= (self.width / 800)
+            v_y /= (self.height / 600)
+            v_w /= (self.width / 800)
+            v_h /= (self.height / 600)
 
             state = "normal"
             if btn_info['name'] == self.pressed_button_name:
