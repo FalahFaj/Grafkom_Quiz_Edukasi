@@ -8,6 +8,7 @@ from .halaman.menu import MenuScene
 from .halaman.pilihan_level import PilihanLevelScene
 from .halaman.options import OptionsScene
 from .halaman.map_scene import MapScene
+from .halaman.credit_scene import CreditScene
 
 # Impor audio manager
 from .audio_manager import audio_manager
@@ -37,7 +38,8 @@ class GameWindow(Gtk.Window):
             "menu_scene": MenuScene(self.lebar_layar, self.tinggi_layar, self.change_scene),
             "pilihan_level_scene": PilihanLevelScene(self.lebar_layar, self.tinggi_layar, self.change_scene),
             "options_scene": OptionsScene(self.lebar_layar, self.tinggi_layar, self.change_scene),
-            "map_scene": MapScene(self.lebar_layar, self.tinggi_layar, self.change_scene)
+            "map_scene": MapScene(self.lebar_layar, self.tinggi_layar, self.change_scene),
+            "credit_scene": CreditScene(self.lebar_layar, self.tinggi_layar, self.change_scene)
         }
         
         self.current_scene = None

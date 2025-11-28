@@ -62,12 +62,24 @@ def draw_glossy_button(ctx, x, y, w, h, text, color="GREEN", state="normal", fon
     ctx.translate(x, y + press_offset)
 
     # Tentukan palet warna dasar
+    txt_shadow_col = (1, 1, 0.7)  # Shadow default kuning terang
+
     if color == "GREEN":
         top, mid, bot = (0.5, 0.8, 0.1), (0.3, 0.6, 0.0), (0.2, 0.4, 0.0)
         txt_col = (0.1, 0.3, 0.0)
+        txt_shadow_col = (1, 1, 0.7)
+    elif color == "BLUE":
+        top, mid, bot = (0.2, 0.3, 0.7), (0.1, 0.2, 0.5), (0.0, 0.1, 0.3)
+        txt_col = (0.8, 0.9, 1.0) # Reverted to original
+        txt_shadow_col = (0.1, 0.1, 0.2)
+    elif color == "PURPLE":
+        top, mid, bot = (0.4, 0.2, 0.6), (0.3, 0.1, 0.5), (0.2, 0.0, 0.3)
+        txt_col = (1.0, 0.9, 1.0) # Light lavender
+        txt_shadow_col = (0.2, 0.0, 0.3)
     else:  # ORANGE
         top, mid, bot = (1.0, 0.8, 0.0), (1.0, 0.6, 0.0), (0.8, 0.4, 0.0)
         txt_col = (0.6, 0.2, 0.0)
+        txt_shadow_col = (1, 1, 0.7)
 
     # Penyesuaian warna berdasarkan state
     if state == "hover":
@@ -88,25 +100,11 @@ def draw_glossy_button(ctx, x, y, w, h, text, color="GREEN", state="normal", fon
     ctx.fill()
 
     # 2. Badan Tombol (Gradien Vertikal)
-    # grad = cairo.LinearGradient(0, 0, 0, h)
-    # grad.add_color_stop_rgb(0, *top)
-    # grad.add_color_stop_rgb(1, *mid)
-    # rounded_rect(ctx, 0, 0, w, h, r)
-    # ctx.set_source(grad)
-    # ctx.fill()
     rounded_rect(ctx, 0, 0, w, h, r)
     ctx.set_source_rgb(*bot)
     ctx.fill()
 
     # 3. Efek 3D Bawah (Tebal)
-    # ctx.save()
-    # ctx.rectangle(0, h / 2, w, h)
-    # ctx.clip()
-    # rounded_rect(ctx, 0, 0, w, h, r)
-    # ctx.set_source_rgb(*bot)
-    # ctx.set_line_width(6)
-    # ctx.stroke()
-    # ctx.restore()
     tebal_3d = 6
     rounded_rect(ctx, 0, 0, w, h - tebal_3d, r)
     
@@ -142,7 +140,7 @@ def draw_glossy_button(ctx, x, y, w, h, text, color="GREEN", state="normal", fon
     # Shadow Teks
     ctx.move_to(text_x_pos, text_y_pos)
     ctx.text_path(text)
-    ctx.set_source_rgb(1, 1, 0.7)
+    ctx.set_source_rgb(*txt_shadow_col)
     ctx.set_line_width(4)
     ctx.stroke()
 
