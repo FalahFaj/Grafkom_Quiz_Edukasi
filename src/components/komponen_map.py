@@ -521,11 +521,12 @@ def draw_ui_button(ctx, x, y, w, h, text, color="GREEN", state="normal", font_si
             txt_col = (0.6, 0.2, 0.0)
             txt_shadow_col = (1, 1, 0.7)
             
-    # Penyesuaian warna berdasarkan state
+    # Penyesuaian warna dan ukuran font berdasarkan state
     if state == "hover":
         # Jadikan warna lebih cerah saat hover
         top = tuple(min(1.0, c + 0.15) for c in top)
         mid = tuple(min(1.0, c + 0.15) for c in mid)
+        font_size *= 1.05 # Sedikit perbesar font
     elif state == "pressed":
         # Jadikan warna lebih gelap saat ditekan
         top = tuple(max(0.0, c - 0.15) for c in top)

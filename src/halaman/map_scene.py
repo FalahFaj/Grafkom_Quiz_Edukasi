@@ -169,9 +169,17 @@ class MapScene(Gtk.DrawingArea):
         self._draw_title(ctx, v_width)
         for btn in self.buttons:
             vx, vy, vw, vh = btn['v_rect']
-            is_hover = (btn['name'] == self.hovered_button_name)
-            is_pressed = (btn['name'] == self.pressed_button_name)
-            komponen_map.draw_ui_button(ctx, vx, vy, vw, vh, btn['name'], is_hover, is_pressed, self.animation_time)
+            
+            state = "normal"
+            if btn['name'] == self.pressed_button_name:
+                state = "pressed"
+            elif btn['name'] == self.hovered_button_name:
+                state = "hover"
+
+            komponen_map.draw_ui_button(
+                ctx, vx, vy, vw, vh, btn['name'], 
+                color="ORANGE", state=state, font_size=24
+            )
 
     def _register_buttons(self, v_width, v_height):
         self.buttons.clear()
