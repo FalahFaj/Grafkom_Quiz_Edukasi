@@ -80,7 +80,6 @@ def draw_glossy_button(ctx, x, y, w, h, text, color="GREEN", state="normal", fon
         top, mid, bot = (1.0, 0.8, 0.0), (1.0, 0.6, 0.0), (0.8, 0.4, 0.0)
         txt_col = (0.6, 0.2, 0.0)
         txt_shadow_col = (1, 1, 0.7)
-
     # Penyesuaian warna berdasarkan state
     if state == "hover":
         # Jadikan warna lebih cerah saat hover
