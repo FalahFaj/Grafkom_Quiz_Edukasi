@@ -87,18 +87,58 @@ def draw_cloud_puff(ctx, cx, cy, radius, tint):
     ctx.restore()
 
 def draw_cloud(ctx, x, y, scale, time, speed_offset, difficulty):
+    """Menggambar awan kartun yang lebih 'fluffy'."""
     t_conf = THEMES.get(difficulty, THEMES['easy'])
-    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale)
-    move_x = math.sin((time * 0.01) + speed_offset) * 30
-    ctx.translate(move_x, 0)
     tint = t_conf['cloud_tint']
     
-    # Gambar awan tumpuk
-    draw_cloud_puff(ctx, 0, 0, 40, tint)
-    draw_cloud_puff(ctx, 35, -10, 35, tint)
-    draw_cloud_puff(ctx, 65, 5, 30, tint)
-    draw_cloud_puff(ctx, -30, 10, 30, tint)
-    draw_cloud_puff(ctx, 25, 15, 25, tint)
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(scale, scale)
+    
+    # Gerakan awan halus kiri-kanan
+    move_x = math.sin((time * 0.005) + speed_offset) * 40
+    ctx.translate(move_x, 0)
+
+    # Definisi bulatan-bulatan awan (x, y, radius)
+    circles = [
+        (0, 0, 30),       # Tengah
+        (25, -5, 25),     # Kanan atas
+        (45, 10, 20),     # Kanan bawah
+        (-25, 5, 22),     # Kiri tengah
+        (-45, 15, 18),    # Kiri bawah
+        (15, 15, 25)      # Bawah tengah
+    ]
+
+    # Agar transparan tidak tumpang tindih (overlap), kita gunakan Group
+    ctx.push_group()
+    
+    # Gambar bentuk awan (Putih solid dulu)
+    for cx, cy, r in circles:
+        ctx.arc(cx, cy, r, 0, 2*math.pi)
+        ctx.fill()
+    
+    # Isi dengan gradien (Putih di atas, sedikit gelap di bawah untuk volume)
+    ctx.set_operator(cairo.OPERATOR_SOURCE) # Timpa warna yang ada
+    ctx.set_source_rgba(1, 1, 1, 1) # Reset source
+    
+    # Terapkan gradien pada bentuk yang sudah digambar
+    # Kita gunakan preserve untuk fill ulang
+    # Sederhananya: Gambar ulang circle dengan gradien
+    grad = cairo.LinearGradient(0, -40, 0, 40)
+    grad.add_color_stop_rgba(0, 1, 1, 1, 1) # Putih bersih di atas
+    # Bagian bawah sedikit gelap sesuai tint
+    r_tint, g_tint, b_tint = tint[:3]
+    grad.add_color_stop_rgba(1, r_tint*0.9, g_tint*0.9, b_tint*0.9, 1) 
+    
+    ctx.set_source(grad)
+    for cx, cy, r in circles:
+        ctx.arc(cx, cy, r, 0, 2*math.pi)
+        ctx.fill()
+        
+    ctx.pop_group_to_source()
+    # Gambar group ke layar dengan alpha keseluruhan dari tint
+    ctx.paint_with_alpha(tint[3])
+    
     ctx.restore()
 
 def draw_sky_background(ctx, w, h, time, difficulty="easy"):
@@ -192,21 +232,126 @@ def draw_foreground_scenery(ctx, w, h, time, difficulty="easy"):
 
 # --- RUMAH & BANGUNAN ---
 
-def draw_castle(ctx, x, y): 
-    """Istana (Easy) - Tampilan Kartun."""
-    ctx.save(); ctx.translate(x, y-15); ctx.scale(1.1, 1.1)
-    # Pondasi
-    ctx.set_source_rgb(0.5, 0.45, 0.4); rounded_rect(ctx, -60, -5, 120, 25, 8); ctx.fill()
-    # Dinding
-    ctx.set_source_rgb(0.85, 0.82, 0.9); ctx.rectangle(-40, -55, 80, 55); ctx.fill()
-    ctx.rectangle(-70, -70, 35, 70); ctx.fill(); ctx.rectangle(35, -70, 35, 70); ctx.fill()
-    # Atap Kerucut
-    ctx.set_source_rgb(0.45, 0.2, 0.6)
-    for cx, cy, w, h in [(-52.5,-70,45,50), (52.5,-70,45,50), (0,-55,60,40)]:
-        ctx.move_to(cx, cy-h); ctx.line_to(cx-w/2, cy); ctx.line_to(cx+w/2, cy); ctx.fill()
-    # Pintu & Bendera
-    ctx.set_source_rgb(0.4, 0.25, 0.1); ctx.arc(0, -5, 18, math.pi, 0); ctx.fill()
-    ctx.set_source_rgb(0.9, 0.3, 0.3); ctx.move_to(-52.5, -120); ctx.line_to(-30, -110); ctx.line_to(-52.5, -100); ctx.fill()
+def draw_castle(ctx, x, y):
+    """Istana (Easy) - Tampilan Lebih Bagus & Detail."""
+    ctx.save()
+    ctx.translate(x, y - 20)  # Adjust position slightly up
+    ctx.scale(1.2, 1.2)       # Make it slightly larger
+
+    # --- Palet Warna ---
+    wall_color_light = (0.9, 0.9, 0.95)   # Putih kebiruan
+    wall_color_dark = (0.7, 0.7, 0.75)    # Bayangan dinding
+    roof_color_light = (0.4, 0.6, 1.0)    # Biru cerah
+    roof_color_dark = (0.2, 0.3, 0.6)     # Biru gelap
+    door_color = (0.4, 0.25, 0.1)         # Coklat kayu
+
+    # --- Helper: Menara ---
+    def draw_tower(tx, ty, w, h, roof_h):
+        # 1. Dinding (Gradien Horizontal untuk efek silinder)
+        ctx.save()
+        grad_wall = cairo.LinearGradient(tx - w/2, 0, tx + w/2, 0)
+        grad_wall.add_color_stop_rgb(0, *wall_color_dark)
+        grad_wall.add_color_stop_rgb(0.4, *wall_color_light)
+        grad_wall.add_color_stop_rgb(1, *wall_color_dark)
+        
+        ctx.rectangle(tx - w/2, ty - h, w, h)
+        ctx.set_source(grad_wall)
+        ctx.fill()
+        
+        # Detail Bata (Sedikit garis-garis tipis)
+        ctx.set_source_rgba(0, 0, 0, 0.1)
+        ctx.set_line_width(1)
+        for i in range(1, 5):
+            line_y = ty - h + (h/5) * i
+            if i % 2 == 0:
+                ctx.move_to(tx - w/2 + 5, line_y); ctx.line_to(tx + w/2 - 5, line_y)
+            else:
+                ctx.move_to(tx - w/2 + 10, line_y); ctx.line_to(tx + w/2 - 10, line_y)
+            ctx.stroke()
+        ctx.restore()
+
+        # 2. Atap Kerucut
+        ctx.save()
+        ctx.move_to(tx - w/2 - 5, ty - h)       # Kiri bawah atap
+        ctx.line_to(tx + w/2 + 5, ty - h)       # Kanan bawah atap
+        ctx.line_to(tx, ty - h - roof_h)        # Puncak
+        ctx.close_path()
+        
+        grad_roof = cairo.LinearGradient(tx - w/2, ty - h, tx + w/2, ty - h)
+        grad_roof.add_color_stop_rgb(0, *roof_color_dark)
+        grad_roof.add_color_stop_rgb(0.5, *roof_color_light)
+        grad_roof.add_color_stop_rgb(1, *roof_color_dark)
+        ctx.set_source(grad_roof)
+        ctx.fill()
+        ctx.restore()
+
+        # 3. Jendela Kecil
+        ctx.set_source_rgb(0.2, 0.2, 0.3)
+        ctx.arc(tx, ty - h/2 - 5, 4, 0, 2*math.pi)
+        ctx.fill()
+        rounded_rect(ctx, tx - 3, ty - h/2 - 5, 6, 12, 2)
+        ctx.fill()
+
+    # --- Gambar Menara ---
+    # Menara Kiri & Kanan (Belakang)
+    draw_tower(-50, 0, 30, 60, 40)
+    draw_tower(50, 0, 30, 60, 40)
+
+    # Bangunan Tengah (Utama)
+    ctx.save()
+    # Dinding Tengah
+    grad_main = cairo.LinearGradient(-35, 0, 35, 0)
+    grad_main.add_color_stop_rgb(0, *wall_color_dark)
+    grad_main.add_color_stop_rgb(0.5, *wall_color_light)
+    grad_main.add_color_stop_rgb(1, *wall_color_dark)
+    
+    ctx.rectangle(-40, -50, 80, 50) # Kotak dasar
+    ctx.set_source(grad_main)
+    ctx.fill()
+    
+    # Gerbang Besar
+    ctx.save()
+    ctx.translate(0, 0)
+    # Frame Pintu (Batu)
+    ctx.set_source_rgb(0.5, 0.5, 0.55)
+    ctx.arc(0, 0, 24, math.pi, 0) # Lengkungan
+    ctx.stroke() # Hanya garis luar
+    
+    # Pintu Kayu
+    ctx.new_path()
+    ctx.arc(0, 0, 20, math.pi, 0)
+    ctx.set_source_rgb(*door_color)
+    ctx.fill()
+    
+    # Detail Pintu (Garis vertikal kayu)
+    ctx.set_source_rgba(0,0,0,0.3)
+    ctx.set_line_width(2)
+    ctx.move_to(0, -20); ctx.line_to(0, 0); ctx.stroke()
+    ctx.restore()
+    ctx.restore()
+
+    # Menara Tengah Tinggi (Di atas bangunan tengah)
+    draw_tower(0, -50, 40, 50, 50)
+
+    # --- Bendera di Puncak ---
+    ctx.save()
+    ctx.translate(0, -100) # Di puncak menara tengah
+    
+    # Tiang
+    ctx.set_source_rgb(0.3, 0.3, 0.3)
+    ctx.set_line_width(2)
+    ctx.move_to(0, 0); ctx.line_to(0, -25); ctx.stroke()
+    
+    # Kain Bendera (Merah)
+    ctx.set_source_rgb(0.9, 0.2, 0.2)
+    ctx.move_to(0, -25)
+    ctx.curve_to(10, -30, 20, -20, 30, -25) # Atas bergelombang
+    ctx.line_to(30, -10)
+    ctx.curve_to(20, -5, 10, -15, 0, -10)   # Bawah bergelombang
+    ctx.close_path()
+    ctx.fill()
+    ctx.restore()
+
     ctx.restore()
 
 def draw_cottage(ctx, x, y): 
@@ -305,7 +450,7 @@ def draw_haunted_house(ctx, x, y):
         'wall_dark': (0.15, 0.15, 0.2), # Sisi gelap
         'roof': (0.08, 0.08, 0.12),     # Hitam pekat
         'glow': (1.0, 0.2, 0.1),        # Merah menyala (Mata/Jendela)
-        'door': (0.1, 0.08, 0.05),      # Kayu busuk
+        'door': (0.1, 0.08, 0.05),          # Kayu busuk
         'detail': (0.05, 0.05, 0.08)    # Hitam (Pagar/Besi)
     }
 
