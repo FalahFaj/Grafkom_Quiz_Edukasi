@@ -62,7 +62,7 @@ class MapScene(Gtk.DrawingArea):
             # Jalur S-Curve Sederhana
             positions = [
                 (150, 600), (300, 550), (400, 450), (300, 350), (450, 250),
-                (650, 250), (800, 350), (950, 450), (1100, 350), (1150, 180)
+                (650, 250), (800, 350), (950, 450), (1100, 350), (1150, 210)
             ]
         elif self.difficulty == 'medium':
             # Jalur Berliku
