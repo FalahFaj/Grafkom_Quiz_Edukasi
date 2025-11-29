@@ -217,9 +217,9 @@ class GameScene(Gtk.DrawingArea):
             ctx.set_source(pat); ctx.paint()
 
             # Matahari Kuning Cerah
-            ctx.save(); ctx.translate(100, 100)
+            ctx.save(); ctx.translate(100, 120)
             ctx.set_source_rgb(1, 0.9, 0.2)
-            ctx.arc(0, 0, 50, 0, 2*math.pi); ctx.fill()
+            ctx.arc(0, 0, 30, 0, 2*math.pi); ctx.fill()
             ctx.restore()
             
             # Bukit Hijau Segar
@@ -341,8 +341,8 @@ class GameScene(Gtk.DrawingArea):
         ctx.save(); ctx.translate(30, 30)
         for i in range(self.lives):
             ctx.save()
-            ctx.translate(i * 55, 0) # Jarak diperlebar (40 -> 55)
-            ctx.scale(0.25, 0.25)
+            ctx.translate(i * 30, 0) # Jarak diperlebar (40 -> 55)
+            ctx.scale(0.15, 0.15)
             img_hati.gambar(ctx, 0, 0)
             ctx.restore()
         ctx.restore()
