@@ -203,7 +203,130 @@ class GameScene(Gtk.DrawingArea):
                 self.hovered_button = btn['name']
         self.queue_draw()
 
-    # --- DRAWING ---
+    # --- DRAWING VISUALS ---
+
+    def draw_bg_dynamic(self, ctx):
+        """Menggambar background berdasarkan difficulty"""
+        if self.difficulty == "easy":
+            # --- PAGI (Biru Cerah) ---
+            pat = cairo.LinearGradient(0, 0, 0, 600)
+            pat.add_color_stop_rgb(0, 0.4, 0.8, 1.0) # Langit Biru
+            pat.add_color_stop_rgb(1, 0.6, 0.9, 1.0)
+            ctx.set_source(pat); ctx.paint()
+
+            # Matahari Kuning Cerah
+            ctx.save(); ctx.translate(100, 120)
+            ctx.set_source_rgb(1, 0.9, 0.2)
+            ctx.arc(0, 0, 30, 0, 2*math.pi); ctx.fill()
+            ctx.restore()
+            
+            # Bukit Hijau Segar
+            ctx.set_source_rgb(0.3, 0.8, 0.3)
+            
+        elif self.difficulty == "medium":
+            # --- SORE (Oranye/Ungu) ---
+            pat = cairo.LinearGradient(0, 0, 0, 600)
+            pat.add_color_stop_rgb(0, 0.2, 0.1, 0.4) # Ungu Tua Atas
+            pat.add_color_stop_rgb(0.6, 0.8, 0.4, 0.2) # Pink/Oranye
+            pat.add_color_stop_rgb(1, 1.0, 0.7, 0.3) # Kuning Bawah
+            ctx.set_source(pat); ctx.paint()
+
+            # Matahari Terbenam (Oren Kemerahan)
+            ctx.save(); ctx.translate(400, 450)
+            ctx.set_source_rgba(1, 0.5, 0.1, 0.8)
+            ctx.arc(0, 0, 100, 0, 2*math.pi); ctx.fill()
+            ctx.restore()
+
+            # Bukit Lebih Gelap/Kecoklatan
+            ctx.set_source_rgb(0.4, 0.5, 0.2)
+
+        else: # hard
+            # --- MALAM (Biru Gelap) ---
+            pat = cairo.LinearGradient(0, 0, 0, 600)
+            pat.add_color_stop_rgb(0, 0.05, 0.05, 0.2) # Biru Gelap
+            pat.add_color_stop_rgb(1, 0.1, 0.1, 0.3)
+            ctx.set_source(pat); ctx.paint()
+
+            # Bulan Sabit
+            ctx.save(); ctx.translate(700, 100)
+            ctx.set_source_rgb(0.9, 0.9, 1.0)
+            ctx.arc(0, 0, 40, 0, 2*math.pi); ctx.fill()
+            ctx.set_source_rgb(0.05, 0.05, 0.2) # Timpa dengan warna langit
+            ctx.arc(-20, 0, 40, 0, 2*math.pi); ctx.fill()
+            ctx.restore()
+
+            # Bintang-bintang
+            random.seed(42) # Seed statis biar bintang ga kedip aneh
+            ctx.set_source_rgba(1, 1, 1, 0.6)
+            for _ in range(30):
+                bx = random.randint(0, 800)
+                by = random.randint(0, 400)
+                ctx.arc(bx, by, random.randint(1, 3), 0, 2*math.pi)
+                ctx.fill()
+            random.seed(time.time()) # Balikin random
+
+            # Bukit Gelap
+            ctx.set_source_rgb(0.1, 0.2, 0.1)
+
+        # Gambar Bukit (Bentuk sama, warna beda sesuai set_source_rgb diatas)
+        ctx.move_to(0, 600)
+        ctx.line_to(0, 500)
+        ctx.curve_to(200, 450, 600, 550, 800, 480)
+        ctx.line_to(800, 600)
+        ctx.close_path()
+        ctx.fill()
+
+    def draw_rounded_rect(self, ctx, x, y, w, h, r):
+        ctx.new_path()
+        ctx.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+        ctx.arc(x + w - r, y + r, r, 3 * math.pi / 2, 0)
+        ctx.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+        ctx.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+        ctx.close_path()
+
+    def draw_fruit_group(self, ctx, count, fruit_type, center_x, center_y):
+        renderer = img_apel if fruit_type == "apel" else img_jeruk
+        
+        # Grid layout
+        cols = 4
+        rows = math.ceil(count / cols)
+        size = 45 
+        
+        # Hitung Ukuran Kontainer Background
+        total_w = min(count, cols) * size
+        total_h = rows * size
+        padding = 15
+
+        # 1. Gambar Background Kontainer Buah (Transparan Putih)
+        ctx.save()
+        ctx.translate(center_x, center_y)
+        ctx.set_source_rgba(1, 1, 1, 0.3) # Putih transparan
+        # Pusatkan rect
+        self.draw_rounded_rect(ctx, -total_w/2 - padding, -total_h/2 - padding, 
+                               total_w + padding*2, total_h + padding*2, 15)
+        ctx.fill()
+        # Border tipis
+        ctx.set_source_rgba(1, 1, 1, 0.5)
+        ctx.set_line_width(2)
+        ctx.stroke()
+        ctx.restore()
+
+        # 2. Gambar Buah
+        ctx.save()
+        ctx.translate(center_x, center_y)
+        
+        start_x = -((min(count, cols) * size) / 2) + size/2
+        start_y = -((rows * size) / 2) + size/2
+        
+        for i in range(count):
+            c = i % cols
+            r = i // cols
+            ctx.save()
+            ctx.translate(start_x + c*size, start_y + r*size)
+            ctx.scale(0.12, 0.12)
+            renderer.gambar(ctx, 0, 0)
+            ctx.restore()
+        ctx.restore()
 
     def on_draw(self, widget, ctx):
         # Scale ke Virtual Resolution 800x600
