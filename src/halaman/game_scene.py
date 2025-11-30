@@ -2,22 +2,20 @@
 import gi
 gi.require_version('Gtk', '3.0')
 import cairo
-import math
 import json
 import time
 import random
 from gi.repository import Gtk, Gdk, GLib
 
+# Import logika game dan komponen
 from ..game_logic import QuestionGenerator
 from ..components.components_menu import draw_glossy_button
 from ..audio_manager import audio_manager
+from ..components import component_game  # Pastikan ini mengarah ke component_game.py
 
-import assets.images.apel as img_apel
-import assets.images.jeruk as img_jeruk
-import assets.images.hati as img_hati
+# Import gambar feedback
 import assets.images.benar as img_benar
 import assets.images.salah as img_salah
-import assets.images.jam as img_jam
 
 class GameScene(Gtk.DrawingArea):
     def __init__(self, window_width, window_height, change_scene_callback):
@@ -100,7 +98,7 @@ class GameScene(Gtk.DrawingArea):
         total_w = 2 * w + gap_x
         start_x = (800 - total_w) / 2
         
-        # DIGESER KE ATAS (Sebelumnya 480)
+        # Posisi tombol pilihan jawaban
         start_y = 420 
         
         for i, ans in enumerate(choices):
@@ -117,7 +115,7 @@ class GameScene(Gtk.DrawingArea):
                 'type': 'answer'
             })
 
-        # Tombol Keluar (Tetap di pojok kiri bawah)
+        # Tombol Keluar (Pojok kiri bawah)
         self.buttons.append({
             'rect': (20, 540, 100, 40), 
             'text': "Keluar", 
@@ -331,108 +329,39 @@ class GameScene(Gtk.DrawingArea):
         ctx.restore()
 
     def on_draw(self, widget, ctx):
+        # Scale ke Virtual Resolution 800x600
         ctx.scale(self.width / 800, self.height / 600)
         
-        # BACKGROUND DINAMIS
-        self.draw_bg_dynamic(ctx)
+        # 1. Background Dinamis (Dari component_game)
+        component_game.draw_game_background(ctx, 800, 600, self.difficulty)
         
-        # --- 1. HUD ---
-        # Nyawa (Kiri Atas) - DIRENGGANGKAN
-        ctx.save(); ctx.translate(30, 30)
-        for i in range(self.lives):
-            ctx.save()
-            ctx.translate(i * 30, 0) # Jarak diperlebar (40 -> 55)
-            ctx.scale(0.15, 0.15)
-            img_hati.gambar(ctx, 0, 0)
-            ctx.restore()
-        ctx.restore()
+        # 2. HUD (Nyawa, Waktu, Info Level) (Dari component_game)
+        component_game.draw_hud(
+            ctx, 800, 600, 
+            self.lives, self.timer, self.difficulty, self.get_display_level()
+        )
 
-        # Timer (Kanan Atas)
-        ctx.save(); ctx.translate(720, 40)
-        ctx.save(); ctx.scale(0.3, 0.3); img_jam.gambar(ctx, 0, 0, 0); ctx.restore()
-        ctx.set_font_size(24)
-        ctx.select_font_face("Verdana", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        ctx.set_source_rgb(1, 1, 1) if self.timer > 10 else ctx.set_source_rgb(1, 0, 0)
-        ctx.move_to(-15, 45); ctx.show_text(f"{self.timer}s")
-        ctx.restore()
-
-        # Info Level (Tengah Atas)
-        # Warna teks disesuaikan background
-        if self.difficulty == "hard":
-            ctx.set_source_rgb(1, 1, 1) # Putih di malam
-        else:
-            ctx.set_source_rgb(0, 0.3, 0.6) # Biru di siang/sore
-
-        ctx.set_font_size(30)
-        # Menampilkan Level Kontinu (11, 21, dst)
-        display_level = self.get_display_level()
-        label = f"LEVEL {display_level}"
-        ext = ctx.text_extents(label)
-        ctx.move_to((800 - ext.width)/2, 50)
-        ctx.show_text(label)
-
-        # --- 2. KONTEN SOAL ---
+        # 3. Konten Soal (Buah, Operator, Text Soal) (Dari component_game)
         if self.current_question:
-            q = self.current_question
-            
-            # Koordinat Baru (Buah & Operator Naik Sedikit)
-            y_visual = 200 # Posisi tengah buah
-            y_soal = 350   # Posisi teks soal
-            
-            x_left = 220
-            x_right = 580
-            x_mid = 400 
-            
-            op_char = "+"
-            if q['op'] == "x": op_char = "×"
-            elif q['op'] == ":": op_char = "÷"
-            elif q['op'] == "-": op_char = "-"
+            component_game.draw_question_visuals(ctx, 800, 600, self.current_question)
 
-            # A. VISUAL BUAH & OPERATOR (Di Tengah)
-            self.draw_fruit_group(ctx, q['a'], q['fruit'], x_left, y_visual)
-            
-            # Operator di Tengah
-            ctx.set_font_size(70)
-            ctx.set_source_rgb(1, 1, 1) # Putih
-            # Shadow
-            ctx.move_to(x_mid - 20 + 3, y_visual + 20 + 3)
-            ctx.set_source_rgba(0,0,0,0.5); ctx.show_text(op_char)
-            # Utama
-            ctx.move_to(x_mid - 20, y_visual + 20)
-            ctx.set_source_rgb(1, 1, 1); ctx.show_text(op_char)
-            
-            self.draw_fruit_group(ctx, q['b'], q['fruit'], x_right, y_visual)
-
-            # B. SOAL LENGKAP (Di Bawah Buah)
-            # Format: "4 + 2 = ?"
-            full_q = f"{q['a']}  {op_char}  {q['b']}  =  ?"
-            
-            # Box background soal biar kebaca
-            ctx.set_font_size(50)
-            ext_q = ctx.text_extents(full_q)
-            q_x = (800 - ext_q.width)/2
-            
-            ctx.set_source_rgba(1, 1, 1, 0.6)
-            self.draw_rounded_rect(ctx, q_x - 20, y_soal - 50, ext_q.width + 40, 70, 10)
-            ctx.fill()
-
-            ctx.set_source_rgb(0, 0, 0.4) 
-            ctx.move_to(q_x, y_soal)
-            ctx.show_text(full_q)
-
-        # --- 3. TOMBOL (Sudah digeser ke atas di _register_buttons) ---
+        # 4. Tombol Jawaban & Navigasi
         for btn in self.buttons:
             state = "hover" if btn['name'] == self.hovered_button else "normal"
             color = "BLUE" if btn['type'] == 'answer' else "RED"
             font_s = 28 if btn['type'] == 'answer' else 18
+            
             draw_glossy_button(ctx, *btn['rect'], btn['text'], color, state, font_size=font_s)
 
-        # --- 4. FEEDBACK ---
+        # 5. Overlay Feedback (Benar/Salah)
         if self.show_feedback:
             ctx.save()
+            # Overlay Gelap
             ctx.set_source_rgba(0, 0, 0, 0.4)
             ctx.rectangle(0, 0, 800, 600)
             ctx.fill()
+            
+            # Gambar Icon Benar/Salah di tengah
             ctx.translate(400, 300)
             if self.feedback_type == 'correct':
                 img_benar.gambar(ctx, 0, 0)

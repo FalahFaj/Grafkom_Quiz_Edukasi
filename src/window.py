@@ -3,7 +3,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 from .config import JUDUL_WINDOW
 
-# Impor semua scene/halaman yang ada
+
 from .halaman.menu import MenuScene
 from .halaman.pilihan_level import PilihanLevelScene
 from .halaman.options import OptionsScene
