@@ -54,7 +54,7 @@ def draw_cloud(ctx, x, y, scale):
     ctx.restore()
 
 def draw_glossy_button(ctx, x, y, w, h, text, color="GREEN", state="normal", font_size=40):
-    """Tombol Game Mewah dengan status hover dan press"""
+    """Tombol Game dengan status hover dan press"""
     ctx.save()
     
     # Penyesuaian offset untuk efek ditekan
@@ -207,7 +207,7 @@ def draw_logo_monster(ctx, x, y, time=0):
     # Mata Melotot (sedikit bergerak berlawanan arah untuk efek paralaks)
     eye_offset_x = math.sin(time * 0.05 + math.pi) * 2 # Bergerak horizontal
     ctx.translate(-15 + eye_offset_x, -10)
-    ctx.set_source_rgb(1,1,1); ctx.arc(0,0, 14, 0, 2*math.pi); ctx.fill()
+    ctx.set_source_rgb(1,1,1); ctx.arc(0,0, 14, 0, 2*math.pi); ctx.fill() 
     ctx.set_source_rgb(1,0.2,0.5); ctx.arc(0,0, 6, 0, 2*math.pi); ctx.fill() 
     ctx.set_source_rgb(0,0,0); ctx.arc(0,0, 2, 0, 2*math.pi); ctx.fill()
     ctx.translate(30, 0)
