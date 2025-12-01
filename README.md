@@ -37,11 +37,6 @@ Pastikan Anda memiliki Python 3 dan GTK3 terinstal di sistem Anda.
     sudo apt-get install python3-gi python3-gi-cairo gir1.2-gtk-3.0
     ```
 
-2.  **Clone repository ini:**
-    ```bash
-    git clone <URL_REPOSITORY_ANDA>
-    cd Grafkom_Quiz_Edukasi
-    ```
 
 ## Cara Menjalankan
 
