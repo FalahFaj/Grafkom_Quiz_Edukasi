@@ -6,6 +6,7 @@ import cairo
 import json
 from gi.repository import Gtk, Gdk, GLib
 from ..components import komponen_map
+from ..audio_manager import audio_manager
 
 class MapScene(Gtk.DrawingArea):
     def __init__(self, window_width, window_height, change_scene_callback):
@@ -84,6 +85,18 @@ class MapScene(Gtk.DrawingArea):
     def on_enter(self, level='easy'):
         self.difficulty = level
         print(f"Loading Map: {self.difficulty.upper()}")
+
+        # Logika pemutaran musik berdasarkan difficulty
+        if self.difficulty == 'easy':
+            audio_manager.play_song_by_name("Lagu 1", is_level_specific=True)
+        elif self.difficulty == 'medium':
+            audio_manager.play_song_by_name("Lagu 2", is_level_specific=True)
+        elif self.difficulty == 'hard':
+            audio_manager.play_song_by_name("Lagu 3", is_level_specific=True)
+        else:
+            # Fallback ke lagu pilihan user jika difficulty tidak dikenali
+            audio_manager.resume_user_song()
+
         self.load_data()
         self._register_buttons(1280, 720)
         self.queue_draw()
@@ -187,7 +200,7 @@ class MapScene(Gtk.DrawingArea):
             komponen_map.draw_crystal_level_node(
                 ctx, 
                 pos[0], pos[1], 
-                lvl_id + display_offset, # <--- PERUBAHAN DISINI
+                lvl_id + display_offset,
                 state, 
                 is_hovered, 
                 self.animation_time, 

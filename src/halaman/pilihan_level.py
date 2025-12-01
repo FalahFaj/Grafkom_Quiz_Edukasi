@@ -7,6 +7,7 @@ import json
 from gi.repository import Gtk, Gdk, GLib
 from ..components.component_pilih_level import draw_level_card
 from ..components.components_menu import draw_glossy_button
+from ..audio_manager import audio_manager
 
 class PilihanLevelScene(Gtk.DrawingArea):
     def __init__(self, window_width, window_height, change_scene_callback):
@@ -46,6 +47,7 @@ class PilihanLevelScene(Gtk.DrawingArea):
     def on_enter(self):
         self.load_save_data()
         self._register_buttons(800, 600)
+        audio_manager.resume_user_song()
         self.queue_draw()
 
     def on_update(self):

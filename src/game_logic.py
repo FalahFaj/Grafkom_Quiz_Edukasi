@@ -25,35 +25,64 @@ class QuestionGenerator:
         
         # --- Logika Angka (Disesuaikan agar visual buah tidak terlalu penuh) ---
         # Kita batasi jumlah buah agar muat di layar (max sekitar 20-25 per grup)
-        
-        if operator == "+":
-            # Level 1: 1-5, Level 10: 10-20
-            limit = 2 + (level * 2) 
-            num_a = random.randint(1, limit)
-            num_b = random.randint(1, limit)
-            ans = num_a + num_b
-            
-        elif operator == "-":
-            limit = 3 + (level * 2)
-            num_a = random.randint(2, limit + 2)
-            num_b = random.randint(1, num_a) # Pengurang tidak boleh lebih besar
-            ans = num_a - num_b
-            
-        elif operator == "x":
-            # Perkalian angka kecil (misal 2x3, 4x5) agar visualisasi masuk akal
-            limit_a = 1 + int(level / 2.5) 
-            limit_b = 1 + int(level / 2)
-            num_a = random.randint(1, max(2, limit_a))
-            num_b = random.randint(1, max(2, limit_b))
-            ans = num_a * num_b
-            
-        elif operator == ":":
-            # Pembagian: Tentukan hasil dulu biar bulat
-            divisor = random.randint(2, 3 + int(level/3))
-            quotient = random.randint(1, 2 + int(level/2))
-            num_b = divisor
-            ans = quotient
-            num_a = divisor * quotient # Total buah
+        if difficulty == "easy":
+            if operator == "+":
+                # Level 1: 1-5, Level 10: 10-20
+                limit = 2 + (level * 2) 
+                num_a = random.randint(1, limit)
+                num_b = random.randint(1, limit)
+                ans = num_a + num_b
+                
+            elif operator == "-":
+                limit = 3 + (level * 2)
+                num_a = random.randint(2, limit + 2)
+                num_b = random.randint(1, num_a) # Pengurang tidak boleh lebih besar
+                ans = num_a - num_b
+
+        elif difficulty == "medium":
+            if operator == "x":
+                # Perkalian angka kecil (misal 2x3, 4x5) agar visualisasi masuk akal
+                limit_a = 1 + int(level / 2.5) 
+                limit_b = 1 + int(level / 2)
+                num_a = random.randint(1, max(2, limit_a))
+                num_b = random.randint(2, max(3, limit_b))
+                ans = num_a * num_b
+                
+            elif operator == ":":
+                # Pembagian: Tentukan hasil dulu biar bulat
+                divisor = random.randint(2, 3 + int(level/3))
+                quotient = random.randint(1, 2 + int(level/2))
+                num_b = divisor
+                ans = quotient
+                num_a = divisor * quotient # Total buah
+                
+        else: # hard
+            if operator == "+":
+                limit = 10 + (level * 3)
+                num_a = random.randint(10, limit)
+                num_b = random.randint(10, limit)
+                ans = num_a + num_b
+                
+            elif operator == "-":
+                limit = 12 + (level * 3)
+                num_a = random.randint(12, limit + 5)
+                num_b = random.randint(10, num_a)
+                ans = num_a - num_b
+
+            elif operator == "x":
+                # Perkalian angka sedang
+                limit_a = 3 + int(level / 2.5) 
+                limit_b = 2 + int(level / 2)
+                num_a = random.randint(3, max(4, limit_a))
+                num_b = random.randint(3, max(3, limit_b))
+                ans = num_a * num_b
+                
+            elif operator == ":":
+                divisor = random.randint(4, 5 + int(level/3))
+                quotient = random.randint(3, max(3, 2 + int(level/2)))
+                num_b = divisor
+                ans = quotient
+                num_a = divisor * quotient # Total buah
 
         # --- Pilihan Ganda ---
         choices = {ans}

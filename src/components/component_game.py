@@ -4,7 +4,6 @@ import math
 import random
 import time
 
-# Import aset gambar yang dibutuhkan
 import assets.images.apel as img_apel
 import assets.images.jeruk as img_jeruk
 import assets.images.hati as img_hati
@@ -62,12 +61,32 @@ def draw_game_background(ctx, w, h, difficulty):
         pat.add_color_stop_rgb(1, 0.1, 0.1, 0.3)
         ctx.set_source(pat); ctx.paint()
 
-        # Bulan Sabit
-        ctx.save(); ctx.translate(700, 100)
-        ctx.set_source_rgb(0.9, 0.9, 1.0)
-        ctx.arc(0, 0, 40, 0, 2*math.pi); ctx.fill()
-        ctx.set_source_rgb(0.05, 0.05, 0.2) # Timpa dengan warna langit (membuat sabit)
-        ctx.arc(-20, 0, 40, 0, 2*math.pi); ctx.fill()
+        # Bulan dari komponen_map.py
+        ctx.save()
+        # Pindah ke bawah soal
+        ctx.translate(750, 200)
+        
+        sun_color = (0.9, 0.9, 1.0) # Warna bulan
+
+        # Glow effect
+        glow = cairo.RadialGradient(0, 0, 10, 0, 0, 80)
+        glow.add_color_stop_rgba(0, sun_color[0], sun_color[1], sun_color[2], 0.6)
+        glow.add_color_stop_rgba(1, sun_color[0], sun_color[1], sun_color[2], 0.0)
+        ctx.set_source(glow)
+        ctx.arc(0, 0, 80, 0, 2*math.pi)
+        ctx.fill()
+        
+        # Badan Bulan
+        ctx.set_source_rgb(*sun_color)
+        ctx.arc(0, 0, 30, 0, 2*math.pi)
+        ctx.fill()
+        
+        # Kawah Bulan
+        ctx.set_source_rgba(0.8, 0.8, 0.9, 0.4)
+        ctx.arc(-10, -5, 6, 0, 2*math.pi)
+        ctx.fill()
+        ctx.arc(15, 10, 6, 0, 2*math.pi)
+        ctx.fill()
         ctx.restore()
 
         # Bintang-bintang
@@ -146,7 +165,12 @@ def draw_fruit_group(ctx, count, fruit_type, center_x, center_y):
     renderer = img_apel if fruit_type == "apel" else img_jeruk
     
     # Grid layout
-    cols = 4
+    if count > 25:
+        cols = 6
+    elif count > 15:
+        cols = 5
+    else:
+        cols = 4
     rows = math.ceil(count / cols)
     size = 45 
     
@@ -191,7 +215,7 @@ def draw_question_visuals(ctx, width, height, question_data):
     
     # Koordinat Layout
     y_visual = 200 # Posisi tengah buah
-    y_soal = 350   # Posisi teks soal
+    y_soal = 385   # Posisi teks soal
     
     x_left = 220
     x_right = 580

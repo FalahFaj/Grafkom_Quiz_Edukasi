@@ -6,6 +6,7 @@ import math
 import random
 from gi.repository import Gtk, Gdk, GLib
 from ..components.components_menu import draw_glossy_button, draw_logo_monster, draw_cloud
+from ..audio_manager import audio_manager
 
 class MenuScene(Gtk.DrawingArea):
     def __init__(self, window_width, window_height, change_scene_callback):
@@ -40,6 +41,11 @@ class MenuScene(Gtk.DrawingArea):
 
         self._register_buttons(800, 600)
         GLib.timeout_add(16, self.on_update)
+
+    def on_enter(self):
+        """Fungsi yang dipanggil saat scene ini ditampilkan."""
+        audio_manager.resume_user_song()
+        self.queue_draw()
 
     def on_update(self):
         """Fungsi yang dipanggil berulang kali untuk semua animasi."""

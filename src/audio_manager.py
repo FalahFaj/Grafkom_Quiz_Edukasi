@@ -18,19 +18,20 @@ class AudioManager:
                 print("Audio akan dinonaktifkan.")
             
             cls._instance.current_song_name = None
+            cls._instance.user_selected_song = "Lagu 1"  # Default user song
             cls._instance.songs = {
-                "Lagu 1": "assets/sounds/aku_suka.mp3",
-                "Lagu 2": "assets/sounds/lagu2.mp3",
-                "Lagu 3": "assets/sounds/lagu3.mp3"
+                "Lagu 1": "assets/sounds/lagupagi.mp3",
+                "Lagu 2": "assets/sounds/lagusore.mp3",
+                "Lagu 3": "assets/sounds/lagumalam.mp3"
             }
             # Set default song
             if cls._instance.is_initialized:
-                 cls._instance.current_song_name = "Lagu 1"
+                cls._instance.current_song_name = "Lagu 1"
 
 
         return cls._instance
 
-    def play_song_by_name(self, name, loops=-1):
+    def play_song_by_name(self, name, loops=-1, is_level_specific=False):
         """Memuat dan memutar lagu berdasarkan nama dari daftar lagu."""
         if not self.is_initialized:
             return
@@ -43,21 +44,34 @@ class AudioManager:
         if not os.path.exists(file_path):
             print(f"AudioManager Error: File musik tidak ditemukan di '{file_path}'")
             # Coba putar lagu default jika ada
-            if name != "Lagu 1":
-                self.play_song_by_name("Lagu 1", loops)
+            if name != self.user_selected_song:
+                self.play_song_by_name(self.user_selected_song, loops)
             return
 
         try:
+            # Don't reload if the same song is already playing
+            if self.current_song_name == name and pygame.mixer.music.get_busy():
+                return
+
             pygame.mixer.music.load(file_path)
             # Ambil volume yang sudah ada sebelumnya
             current_vol = self.get_volume()
             pygame.mixer.music.set_volume(current_vol)
             pygame.mixer.music.play(loops=loops)
             self.current_song_name = name
+
+            if not is_level_specific:
+                self.user_selected_song = name
+
             print(f"AudioManager: Memutar '{name}' dari file '{file_path}'.")
         except pygame.error as e:
             print(f"AudioManager Error: Gagal memutar musik. {e}")
             self.current_song_name = None
+
+    def resume_user_song(self, loops=-1):
+        """Resume playing the user's chosen song."""
+        if self.current_song_name != self.user_selected_song:
+            self.play_song_by_name(self.user_selected_song, loops)
 
     def stop_music(self):
         if not self.is_initialized: return

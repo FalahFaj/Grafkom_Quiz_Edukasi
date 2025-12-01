@@ -96,7 +96,7 @@ def draw_cloud(ctx, x, y, scale, time, speed_offset, difficulty):
     ctx.scale(scale, scale)
     
     # Gerakan awan halus kiri-kanan
-    move_x = math.sin((time * 0.005) + speed_offset) * 40
+    move_x = math.sin((time * 0.015) + speed_offset) * 40
     ctx.translate(move_x, 0)
 
     # Definisi bulatan-bulatan awan (x, y, radius)
